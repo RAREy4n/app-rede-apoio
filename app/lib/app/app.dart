@@ -1,0 +1,23 @@
+import 'package:flutter/material.dart';
+
+import '../core/theme/app_theme.dart';
+import '../features/home/presentation/pages/home_page.dart';
+import '../features/onboarding/presentation/pages/onboarding_page.dart';
+
+class RedeApoioApp extends StatelessWidget {
+  const RedeApoioApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Rede de Apoio',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light,
+      initialRoute: OnboardingPage.routeName,
+      routes: {
+        OnboardingPage.routeName: (_) => const OnboardingPage(),
+        HomePage.routeName: (_) => const HomePage(),
+      },
+    );
+  }
+}

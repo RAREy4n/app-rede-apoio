@@ -1,0 +1,43 @@
+# Sistema e IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+
+# Arquivos temporários de desenvolvimento
+work/
+*.log
+
+# Variáveis locais e segredos
+.env
+.env.*
+!.env.example
+
+# Flutter e Dart
+app/.dart_tool/
+app/.packages
+app/.pub/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/build/
+app/coverage/
+
+# Android gerado localmente
+app/android/.gradle/
+app/android/local.properties
+app/android/.cxx/
+app/android/captures/
+app/android/*.iml
+
+# iOS gerado localmente
+app/ios/Pods/
+app/ios/.symlinks/
+app/ios/Flutter/ephemeral/
+
+# JavaScript
+landing-page/node_modules/
+landing-page/dist/
+landing-page/.next/
+backend/node_modules/
+backend/dist/

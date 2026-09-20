@@ -9,6 +9,7 @@ Este arquivo é o ponto de entrada para qualquer IA ou desenvolvedor que for con
 Leia também:
 
 - [README.md](README.md): visão geral, execução e fluxo de interface.
+- [docs/AMBIENTE-ANDROID.md](docs/AMBIENTE-ANDROID.md): instalação, emulador, validação e diagnóstico do Android.
 - [docs/CONTEXTO-PARA-IAS.md](docs/CONTEXTO-PARA-IAS.md): produto, limites e decisões.
 - [docs/ESCOPO.md](docs/ESCOPO.md): recorte acadêmico e MVP.
 - [docs/PENDENCIAS.md](docs/PENDENCIAS.md): trabalho pendente e prioridades.

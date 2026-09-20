@@ -46,6 +46,8 @@ flutter build apk --debug
 
 O APK gerado é somente um artefato local de desenvolvimento e não deve ser enviado ao Git.
 
+Para instalar ou recuperar todo o ambiente de testes Android, consulte o [guia completo de Android Studio e emulador](docs/AMBIENTE-ANDROID.md).
+
 ## Fluxo inicial de interface
 
 ```mermaid
@@ -82,6 +84,7 @@ O acesso a ajuda imediata deve permanecer disponível sem login. Itens marcados 
 ## Documentação para continuar o projeto
 
 - [Guia para IAs e colaboradores](AGENTS.md)
+- [Ambiente Android e testes](docs/AMBIENTE-ANDROID.md)
 - [Escopo do projeto](docs/ESCOPO.md)
 - [Contexto detalhado para IAs](docs/CONTEXTO-PARA-IAS.md)
 - [Estrutura do repositório](docs/ESTRUTURA.md)

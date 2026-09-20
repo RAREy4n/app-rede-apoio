@@ -23,11 +23,11 @@ Legenda: `[ ]` pendente, `[x]` concluído.
 ## Configuração inicial
 
 - [ ] Definir se haverá conta ou somente configuração local no MVP.
-- [ ] Criar fluxo passo a passo.
-- [ ] Cadastrar pessoa de confiança.
-- [ ] Confirmar telefone do contato.
+- [x] Criar fluxo inicial de cadastro local de pessoa de confiança.
+- [x] Cadastrar nome e telefone em interface de demonstração.
+- [ ] Persistir o contato localmente com proteção adequada.
 - [ ] Criar envio de mensagem de teste.
-- [ ] Permitir pular configuração e acessar emergência.
+- [x] Permitir pular configuração e acessar a tela inicial.
 
 ## Canais oficiais
 
@@ -51,7 +51,8 @@ Legenda: `[ ]` pendente, `[x]` concluído.
 - [ ] Escolher município ou estado-piloto.
 - [ ] Definir fonte dos dados.
 - [ ] Criar modelo de instituição.
-- [ ] Implementar mapa.
+- [x] Implementar prévia visual de mapa com filtros demonstrativos.
+- [ ] Integrar mapa e dados reais de instituições verificadas.
 - [ ] Implementar filtros por serviço.
 - [ ] Exibir data da última verificação.
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../home/presentation/pages/home_page.dart';
+import '../../../trusted_contact/presentation/pages/trusted_contact_page.dart';
 
 class OnboardingPage extends StatelessWidget {
   const OnboardingPage({super.key});
@@ -37,8 +38,10 @@ class OnboardingPage extends StatelessWidget {
               const Spacer(),
               FilledButton(
                 onPressed: () {
-                  // O cadastro do contato será implementado na próxima etapa.
-                  Navigator.pushReplacementNamed(context, HomePage.routeName);
+                  Navigator.pushReplacementNamed(
+                    context,
+                    TrustedContactPage.routeName,
+                  );
                 },
                 child: const Text('Configurar aplicativo'),
               ),

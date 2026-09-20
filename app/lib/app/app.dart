@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
 import '../features/home/presentation/pages/home_page.dart';
 import '../features/onboarding/presentation/pages/onboarding_page.dart';
+import '../features/trusted_contact/presentation/pages/trusted_contact_page.dart';
 
 class RedeApoioApp extends StatelessWidget {
   const RedeApoioApp({super.key});
@@ -17,6 +18,7 @@ class RedeApoioApp extends StatelessWidget {
       routes: {
         OnboardingPage.routeName: (_) => const OnboardingPage(),
         HomePage.routeName: (_) => const HomePage(),
+        TrustedContactPage.routeName: (_) => const TrustedContactPage(),
       },
     );
   }

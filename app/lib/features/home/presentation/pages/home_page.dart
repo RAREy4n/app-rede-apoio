@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/services/emergency_service.dart';
+import '../../../../core/services/share_location_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/action_card.dart';
 import '../../../../core/widgets/support_map_preview.dart';
+import '../../../support_network/presentation/pages/support_network_page.dart';
 import '../../../trusted_contact/presentation/pages/trusted_contact_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -26,6 +29,82 @@ class _HomePageState extends State<HomePage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
+  }
+
+  Future<void> _enviarLocalizacao() async {
+    // Mostrar indicação de carregamento
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(width: 12),
+            Text('Obtendo localização…'),
+          ],
+        ),
+        duration: const Duration(seconds: 10),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+
+    final resultado = await ShareLocationService.enviarParaQualquerContato();
+
+    if (!mounted) return;
+
+    // Limpar snackbar de carregamento
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+    switch (resultado) {
+      case ShareResult.sucesso:
+        // WhatsApp aberto com sucesso — nada mais a fazer
+        break;
+      case ShareResult.semLocalizacao:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Não foi possível obter sua localização. '
+              'Verifique se o GPS está ativo e se a permissão foi concedida.',
+            ),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      case ShareResult.whatsappIndisponivel:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'WhatsApp não encontrado. Verifique se está instalado.',
+            ),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      case ShareResult.falhaGeral:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Não foi possível compartilhar a localização neste momento.',
+            ),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+    }
   }
 
   @override
@@ -131,14 +210,17 @@ class _HomePageState extends State<HomePage> {
 
               // ── Mapa demonstrativo ────────────────────────────────────
               SupportMapPreview(
-                onTap: () => _showPending('Mapa completo de serviços'),
+                onTap: () => Navigator.pushNamed(
+                  context,
+                  SupportNetworkPage.routeName,
+                ),
               ),
 
               const SizedBox(height: 16),
 
               // ── Card de Emergência 190 ────────────────────────────────
               _EmergencyCard(
-                onTap: () => _showPending('Ligação para 190'),
+                onTap: () => EmergencyService.confirmarELigar190(context),
               ),
 
               const SizedBox(height: 24),
@@ -165,12 +247,20 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               ActionCard(
+                icon: Icons.location_on_rounded,
+                title: 'Enviar localização',
+                description: 'Compartilhar sua posição atual via WhatsApp.',
+                accentColor: const Color(0xFF2E7D32),
+                iconBackgroundColor: const Color(0xFFE8F5E9),
+                onTap: () => _enviarLocalizacao(),
+              ),
+              ActionCard(
                 icon: Icons.support_agent_rounded,
                 title: 'Ligue 180',
                 description: 'Canal oficial de orientação e denúncia.',
                 accentColor: AppColors.primary,
                 iconBackgroundColor: AppColors.blueSoft,
-                onTap: () => _showPending('Acesso ao Ligue 180'),
+                onTap: () => EmergencyService.confirmarELigar180(context),
               ),
               ActionCard(
                 icon: Icons.menu_book_rounded,

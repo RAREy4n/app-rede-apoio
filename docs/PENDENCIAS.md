@@ -31,15 +31,15 @@ Legenda: `[ ]` pendente, `[x]` concluído.
 
 ## Canais oficiais
 
-- [ ] Abrir ligação para 190 com confirmação.
-- [ ] Abrir ligação ou canal oficial do Ligue 180.
+- [x] Abrir ligação para 190 com confirmação.
+- [x] Abrir ligação ou canal oficial do Ligue 180.
 - [ ] Exibir aviso sobre limitações do aplicativo.
 - [ ] Testar funcionamento sem internet quando aplicável.
 
 ## Localização e contato
 
-- [ ] Solicitar permissão de localização somente quando necessária.
-- [ ] Enviar localização atual por WhatsApp ou SMS.
+- [x] Solicitar permissão de localização somente quando necessária.
+- [x] Enviar localização atual por WhatsApp ou SMS.
 - [ ] Definir backend para localização temporária.
 - [ ] Criar link seguro e expirável.
 - [ ] Permitir duração de 15, 30 ou 60 minutos.
@@ -48,12 +48,13 @@ Legenda: `[ ]` pendente, `[x]` concluído.
 
 ## Rede de apoio
 
-- [ ] Escolher município ou estado-piloto.
-- [ ] Definir fonte dos dados.
-- [ ] Criar modelo de instituição.
+- [x] Escolher município ou estado-piloto (São Paulo / Região Metropolitana).
+- [x] Definir fonte dos dados (Supabase PostgreSQL + PostGIS).
+- [x] Criar modelo de instituição (`SupportInstitution`).
 - [x] Implementar prévia visual de mapa com filtros demonstrativos.
-- [ ] Integrar mapa e dados reais de instituições verificadas.
-- [ ] Implementar filtros por serviço.
+- [x] Integrar consulta de dados de instituições verificadas com cálculo de distância (Supabase RPC `nearby_institutions`).
+- [x] Implementar tela completa da Rede de Apoio com busca textual, categorias, ação de ligar e rotas no mapa (`SupportNetworkPage`).
+- [x] Implementar filtros por serviço e categoria.
 - [ ] Exibir data da última verificação.
 
 ## Privacidade e segurança

@@ -1,0 +1,40 @@
+{
+  "name": "rede-apoio-backend",
+  "version": "0.1.0",
+  "description": "Backend do Rede de Apoio — API de rede de proteção, localização e conteúdo informativo.",
+  "main": "dist/app.js",
+  "scripts": {
+    "dev": "tsx watch src/app.ts",
+    "build": "tsc",
+    "start": "node dist/app.js",
+    "seed": "tsx src/scripts/seed.ts",
+    "lint": "eslint src/",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "cors": "^2.8.5",
+    "helmet": "^8.0.0",
+    "express-rate-limit": "^7.4.1",
+    "dotenv": "^16.4.7",
+    "zod": "^3.24.1",
+    "pg": "^8.13.3",
+    "ioredis": "^5.4.2",
+    "socket.io": "^4.8.1",
+    "uuid": "^11.0.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "@types/express": "^5.0.0",
+    "@types/cors": "^2.8.17",
+    "@types/pg": "^8.11.11",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.19.2",
+    "vitest": "^3.0.5",
+    "eslint": "^9.18.0",
+    "@types/node": "^22.10.7"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

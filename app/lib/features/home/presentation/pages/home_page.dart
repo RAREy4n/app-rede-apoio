@@ -19,7 +19,18 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  String _filter = 'Todos';
+  String _filter = 'todos';
+
+  /// Abre a Rede de Apoio já filtrada pelo chip escolhido na tela inicial.
+  void _abrirRedeDeApoio() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        settings: const RouteSettings(name: SupportNetworkPage.routeName),
+        builder: (_) => SupportNetworkPage(categoriaInicial: _filter),
+      ),
+    );
+  }
 
   void _showPending(String feature) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -190,15 +201,18 @@ class _HomePageState extends State<HomePage> {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: ['Todos', 'Delegacias', 'Acolhimento', 'Jurídico']
+                  children: SupportNetworkPage.categoriasFiltro
+                      .where((cat) => cat.id != 'saude')
                       .map(
-                        (filter) => Padding(
+                        (cat) => Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: _FilterChip(
-                            label: filter,
-                            selected: _filter == filter,
-                            onSelected: () =>
-                                setState(() => _filter = filter),
+                            label: cat.label,
+                            selected: _filter == cat.id,
+                            onSelected: () {
+                              setState(() => _filter = cat.id);
+                              _abrirRedeDeApoio();
+                            },
                           ),
                         ),
                       )
@@ -209,12 +223,7 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 16),
 
               // ── Mapa demonstrativo ────────────────────────────────────
-              SupportMapPreview(
-                onTap: () => Navigator.pushNamed(
-                  context,
-                  SupportNetworkPage.routeName,
-                ),
-              ),
+              SupportMapPreview(onTap: _abrirRedeDeApoio),
 
               const SizedBox(height: 16),
 

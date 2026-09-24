@@ -1,78 +1,158 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/config/supabase_config.dart';
+import '../../../../core/utils/text_normalizer.dart';
 import '../domain/models/support_institution.dart';
 
-/// Serviço responsável pela busca de pontos de apoio no Supabase e ações de contato.
+/// Resultado de uma busca na rede de apoio.
+class ResultadoBusca {
+  const ResultadoBusca({required this.instituicoes, required this.offline});
+
+  final List<SupportInstitution> instituicoes;
+
+  /// `true` quando os dados vieram da lista local de contingência
+  /// (sem internet, Supabase indisponível ou erro na consulta).
+  final bool offline;
+}
+
+/// Serviço de busca de pontos de apoio (Supabase) e ações de contato.
+///
+/// A busca acontece no servidor (RPC `search_institutions`), sobre a base
+/// curada. Se não houver conexão, usa uma lista local mínima e verificada,
+/// aplicando as mesmas regras de filtro (Regras 1 e 5 do AGENTS.md).
 class SupportNetworkService {
   const SupportNetworkService._();
 
-  /// Busca instituições próximas no Supabase.
+  /// Cidade-piloto atual. Usada apenas para textos da interface; a busca
+  /// não filtra por cidade para que a expansão não exija mudança no app.
+  static const cidadePiloto = 'Curitiba';
+
+  static const _maxResultados = 30;
+
+  /// Busca instituições por texto, categorias e proximidade.
   ///
-  /// Se coordenadas forem fornecidas, executa a busca geoespacial via RPC `nearby_institutions`.
-  /// Se estiver offline ou ocorrer falha de rede, retorna pontos de apoio de contingência.
-  static Future<List<SupportInstitution>> buscarInstituicoes({
+  /// - [texto]: nome, bairro, serviço ou público (sem diferenciar acentos).
+  /// - [categorias]: lista de categorias do banco; vazia = todas.
+  /// - [lat]/[lng]: quando informados, ordena por distância.
+  static Future<ResultadoBusca> buscarInstituicoes({
+    String? texto,
+    List<String> categorias = const [],
     double? lat,
     double? lng,
-    String? category,
-    int radiusMeters = 20000,
   }) async {
     final client = SupabaseConfig.client;
+    final termo = texto?.trim() ?? '';
 
     if (client != null) {
       try {
-        if (lat != null && lng != null) {
-          // Busca geoespacial com PostGIS via RPC
-          var response = await client.rpc(
-            'nearby_institutions',
-            params: {
-              'lat': lat,
-              'lng': lng,
-              'radius_meters': radiusMeters,
-              if (category != null && category.isNotEmpty) 'filter_category': category,
-              'max_results': 30,
-            },
-          );
-
-          // Se não houver instituições dentro do raio próximo (ex: usuária testando de outra cidade),
-          // busca os pontos cadastrados ordenados pela menor distância real
-          if (response is List && response.isEmpty) {
-            response = await client.rpc(
-              'nearby_institutions',
+        final response = await client
+            .rpc(
+              'search_institutions',
               params: {
+                'q': termo.isEmpty ? null : termo,
                 'lat': lat,
                 'lng': lng,
-                'radius_meters': 0,
-                if (category != null && category.isNotEmpty) 'filter_category': category,
-                'max_results': 30,
+                'filter_categories': categorias.isEmpty ? null : categorias,
+                'max_results': _maxResultados,
               },
-            );
-          }
+            )
+            .timeout(const Duration(seconds: 8));
 
-          if (response is List && response.isNotEmpty) {
-            return response
-                .map((item) => SupportInstitution.fromSupabase(Map<String, dynamic>.from(item as Map)))
-                .toList();
-          }
-        } else {
-          // Busca sem localização precisa (lista geral ativa)
-          var query = client.from('institutions').select().eq('is_active', true);
-          if (category != null && category.isNotEmpty) {
-            query = query.eq('category', category);
-          }
-          final response = await query.order('name');
-          return response
-              .map((item) => SupportInstitution.fromSupabase(item))
+        if (response is List) {
+          final itens = response
+              .map((item) => SupportInstitution.fromSupabase(
+                    Map<String, dynamic>.from(item as Map),
+                  ))
               .toList();
+          return ResultadoBusca(instituicoes: itens, offline: false);
         }
       } catch (e) {
-        debugPrint('Erro ao buscar instituições no Supabase: $e. Usando contingência local.');
+        debugPrint('Erro na busca de instituições: $e. Usando contingência local.');
       }
     }
 
-    // Fallback offline garantido (Regra 1 e Regra 5: segurança sem internet)
-    return obterInstituicoesContingencia(category);
+    return ResultadoBusca(
+      instituicoes: filtrarLocalmente(
+        obterInstituicoesContingencia(),
+        texto: termo,
+        categorias: categorias,
+        lat: lat,
+        lng: lng,
+      ),
+      offline: true,
+    );
+  }
+
+  /// Aplica localmente as mesmas regras da RPC `search_institutions`.
+  @visibleForTesting
+  static List<SupportInstitution> filtrarLocalmente(
+    List<SupportInstitution> lista, {
+    String? texto,
+    List<String> categorias = const [],
+    double? lat,
+    double? lng,
+  }) {
+    final termos = termosDeBusca(texto);
+    final filtradas = lista
+        .where((i) => categorias.isEmpty || categorias.contains(i.category))
+        .where((i) => i.matchesTerms(termos))
+        .map((i) => _comDistancia(i, lat, lng))
+        .toList();
+
+    filtradas.sort((a, b) {
+      final da = a.distanceKm;
+      final db = b.distanceKm;
+      if (da != null && db != null && da != db) return da.compareTo(db);
+      return normalizarTexto(a.name).compareTo(normalizarTexto(b.name));
+    });
+    return filtradas;
+  }
+
+  static SupportInstitution _comDistancia(SupportInstitution i, double? lat, double? lng) {
+    if (lat == null || lng == null || i.latitude == null || i.longitude == null) {
+      return i;
+    }
+    return SupportInstitution(
+      id: i.id,
+      externalKey: i.externalKey,
+      name: i.name,
+      category: i.category,
+      subcategory: i.subcategory,
+      address: i.address,
+      district: i.district,
+      city: i.city,
+      state: i.state,
+      zipCode: i.zipCode,
+      phone: i.phone,
+      phone2: i.phone2,
+      email: i.email,
+      website: i.website,
+      openingHours: i.openingHours,
+      latitude: i.latitude,
+      longitude: i.longitude,
+      services: i.services,
+      targetAudience: i.targetAudience,
+      verifiedAt: i.verifiedAt,
+      sourceName: i.sourceName,
+      sourceUrl: i.sourceUrl,
+      locationPrecision: i.locationPrecision,
+      distanceKm: _distanciaKm(lat, lng, i.latitude!, i.longitude!),
+    );
+  }
+
+  /// Distância em linha reta (fórmula de Haversine), arredondada a 2 casas.
+  static double _distanciaKm(double lat1, double lng1, double lat2, double lng2) {
+    const raioTerraKm = 6371.0;
+    double rad(double g) => g * math.pi / 180;
+    final dLat = rad(lat2 - lat1);
+    final dLng = rad(lng2 - lng1);
+    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(rad(lat1)) * math.cos(rad(lat2)) * math.sin(dLng / 2) * math.sin(dLng / 2);
+    final km = raioTerraKm * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return (km * 100).roundToDouble() / 100;
   }
 
   /// Inicia discagem para o telefone da instituição.
@@ -80,102 +160,185 @@ class SupportNetworkService {
     final sanitizado = telefone.replaceAll(RegExp(r'[^\d+]'), '');
     final uri = Uri(scheme: 'tel', path: sanitizado);
     try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
-        return true;
-      }
-    } catch (_) {}
-    return false;
+      return await launchUrl(uri);
+    } catch (_) {
+      return false;
+    }
   }
 
-  /// Abre o aplicativo de mapas (Google Maps ou padrão) com a rota traçada.
-  static Future<bool> abrirNoMapa({
-    double? latitude,
-    double? longitude,
-    required String endereco,
-  }) async {
-    Uri uri;
-    if (latitude != null && longitude != null) {
+  /// Abre o aplicativo de mapas com a rota até a instituição.
+  ///
+  /// Se a coordenada for aproximada, usa o endereço para não levar a
+  /// usuária a um ponto errado.
+  static Future<bool> abrirNoMapa(SupportInstitution instituicao) async {
+    final Uri uri;
+    if (!instituicao.hasApproximateLocation &&
+        instituicao.latitude != null &&
+        instituicao.longitude != null) {
       uri = Uri.parse(
-        'https://www.google.com/maps/dir/?api=1&destination=$latitude,$longitude',
+        'https://www.google.com/maps/dir/?api=1'
+        '&destination=${instituicao.latitude},${instituicao.longitude}',
       );
     } else {
-      final query = Uri.encodeComponent(endereco);
-      uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$query');
+      final destino = Uri.encodeComponent(
+        '${instituicao.address}, ${instituicao.city} - ${instituicao.state}',
+      );
+      uri = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$destino');
     }
 
     try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-        return true;
-      }
-    } catch (_) {}
-    return false;
+      return await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      return false;
+    }
   }
 
-  /// Pontos essenciais offline caso o usuário esteja sem conexão com a internet.
-  static List<SupportInstitution> obterInstituicoesContingencia([String? categoryFilter]) {
-    const lista = [
+  /// Abre a página oficial usada como fonte do cadastro.
+  static Future<bool> abrirFonte(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return false;
+    try {
+      return await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Lista mínima para uso sem internet — piloto Curitiba.
+  ///
+  /// Contém somente registros conferidos com fonte oficial em 24/09/2026
+  /// (espelho de backend/supabase/04_seed_curitiba.sql). Ao alterar a base,
+  /// atualize esta lista também.
+  static List<SupportInstitution> obterInstituicoesContingencia() {
+    final verificadoEm = DateTime.utc(2026, 9, 24);
+    const h24 = {
+      'seg': '24h', 'ter': '24h', 'qua': '24h', 'qui': '24h',
+      'sex': '24h', 'sab': '24h', 'dom': '24h',
+    };
+    const fontePrefeitura =
+        'https://mulhereigualdade.curitiba.pr.gov.br/conteudo/rede-de-atencao-as-mulheres-em-situacao-de-violencias/12';
+    const fonteTjpr = 'https://www.tjpr.jus.br/web/cevid/onde-procurar-ajuda';
+
+    return [
       SupportInstitution(
-        id: 'deam-centro-offline',
-        name: 'DEAM Centro — Delegacia da Mulher',
-        category: 'delegacia_mulher',
-        address: 'Rua Dr. Falcão Filho, 100 - Centro',
-        city: 'São Paulo',
-        state: 'SP',
-        phone: '(11) 3101-1234',
-        services: ['boletim_ocorrencia', 'medida_protetiva', 'acolhimento'],
-        openingHours: {'seg': '24h', 'dom': '24h'},
-      ),
-      SupportInstitution(
-        id: 'creas-centro-offline',
-        name: 'CREAS Centro',
-        category: 'creas',
-        address: 'Rua Libero Badaró, 600 - Centro',
-        city: 'São Paulo',
-        state: 'SP',
-        phone: '(11) 3104-5678',
-        services: ['acolhimento', 'orientacao_juridica', 'atendimento_psicologico'],
-        openingHours: {'seg': '08:00-17:00'},
-      ),
-      SupportInstitution(
-        id: 'defensoria-offline',
-        name: 'Defensoria Pública — Núcleo de Promoção e Defesa dos Direitos das Mulheres',
-        category: 'defensoria',
-        address: 'Rua Boa Vista, 200 - Centro',
-        city: 'São Paulo',
-        state: 'SP',
-        phone: '(11) 3105-1234',
-        services: ['orientacao_juridica', 'medida_protetiva'],
-        openingHours: {'seg': '09:00-17:00'},
-      ),
-      SupportInstitution(
-        id: 'crm-eliane-offline',
-        name: 'Centro de Referência da Mulher — Casa Eliane de Grammont',
+        id: 'cwb-casa-mulher-brasileira',
+        externalKey: 'cwb-casa-mulher-brasileira',
+        name: 'Casa da Mulher Brasileira de Curitiba',
         category: 'centro_referencia',
-        address: 'Rua Dr. Bittencourt Rodrigues, 200 - Sé',
-        city: 'São Paulo',
-        state: 'SP',
-        phone: '(11) 3106-1234',
-        services: ['atendimento_psicologico', 'orientacao_juridica'],
-        openingHours: {'seg': '08:00-17:00'},
+        subcategory: 'Centro de Referência de Atendimento à Mulher (CRAM)',
+        address: 'Av. Paraná, 870 - Cabral',
+        district: 'Cabral',
+        city: 'Curitiba',
+        state: 'PR',
+        zipCode: '80035-130',
+        phone: '(41) 3221-2701',
+        phone2: '(41) 3221-2710',
+        email: 'cmb@curitiba.pr.gov.br',
+        openingHours: h24,
+        latitude: -25.40468353,
+        longitude: -49.25013167,
+        services: const [
+          'acolhimento', 'atendimento_psicossocial', 'orientacao_juridica',
+          'defensoria_publica', 'juizado_violencia_domestica', 'ministerio_publico',
+          'patrulha_maria_da_penha', 'alojamento_temporario', 'autonomia_economica',
+          'brinquedoteca',
+        ],
+        targetAudience: 'Mulheres em situação de violência doméstica e familiar',
+        verifiedAt: verificadoEm,
+        sourceName: 'Prefeitura de Curitiba — Portal Locais',
+        sourceUrl:
+            'https://locais.curitiba.pr.gov.br/centro-de-referencia-de-atendimento-a-mulher-casa-da-mulher-brasileira/2117',
       ),
       SupportInstitution(
-        id: 'hospital-carminio-offline',
-        name: 'Hospital Municipal Dr. Cármino Caricchio',
+        id: 'cwb-delegacia-mulher',
+        externalKey: 'cwb-delegacia-mulher',
+        name: 'Delegacia da Mulher de Curitiba',
+        category: 'delegacia_mulher',
+        subcategory: 'Funciona dentro da Casa da Mulher Brasileira',
+        address: 'Av. Paraná, 870 - Cabral',
+        district: 'Cabral',
+        city: 'Curitiba',
+        state: 'PR',
+        zipCode: '80035-130',
+        phone: '(41) 3221-2742',
+        phone2: '(41) 3221-2745',
+        openingHours: h24,
+        latitude: -25.40468353,
+        longitude: -49.25013167,
+        services: const [
+          'boletim_ocorrencia', 'medida_protetiva', 'violencia_domestica', 'violencia_sexual',
+        ],
+        targetAudience: 'Mulheres em situação de violência doméstica, familiar e sexual',
+        verifiedAt: verificadoEm,
+        sourceName: 'Prefeitura de Curitiba — Secretaria da Mulher',
+        sourceUrl: fontePrefeitura,
+      ),
+      SupportInstitution(
+        id: 'cwb-hc-ufpr',
+        externalKey: 'cwb-hc-ufpr',
+        name: 'Complexo Hospital de Clínicas da UFPR',
         category: 'hospital',
-        address: 'Av. Celso Garcia, 4815 - Tatuapé',
-        city: 'São Paulo',
-        state: 'SP',
-        phone: '(11) 2799-0000',
-        services: ['urgencia', 'atendimento_vitimas_violencia'],
-        openingHours: {'seg': '24h', 'dom': '24h'},
+        subcategory: 'Referência em violência sexual',
+        address: 'Rua General Carneiro, 181 - Alto da Glória',
+        district: 'Alto da Glória',
+        city: 'Curitiba',
+        state: 'PR',
+        zipCode: '80060-150',
+        phone: '(41) 3360-1800',
+        openingHours: h24,
+        latitude: -25.4246,
+        longitude: -49.2612,
+        locationPrecision: 'aproximada',
+        services: const ['atendimento_violencia_sexual', 'urgencia'],
+        targetAudience: 'Mulheres a partir de 12 anos, incluindo mulheres trans e travestis',
+        verifiedAt: verificadoEm,
+        sourceName: 'TJPR — CEVID, Onde procurar ajuda',
+        sourceUrl: fonteTjpr,
+      ),
+      SupportInstitution(
+        id: 'cwb-evangelico-mackenzie',
+        externalKey: 'cwb-evangelico-mackenzie',
+        name: 'Hospital Universitário Evangélico Mackenzie',
+        category: 'hospital',
+        subcategory: 'Referência em violência sexual',
+        address: 'Alameda Augusto Stellfeld, 1908 - Bigorrilho',
+        district: 'Bigorrilho',
+        city: 'Curitiba',
+        state: 'PR',
+        zipCode: '80730-150',
+        phone: '(41) 3240-5000',
+        openingHours: h24,
+        latitude: -25.4296,
+        longitude: -49.2870,
+        locationPrecision: 'aproximada',
+        services: const ['atendimento_violencia_sexual', 'urgencia'],
+        targetAudience: 'Mulheres a partir de 12 anos',
+        verifiedAt: verificadoEm,
+        sourceName: 'TJPR — CEVID, Onde procurar ajuda',
+        sourceUrl: fonteTjpr,
+      ),
+      SupportInstitution(
+        id: 'cwb-pequeno-principe',
+        externalKey: 'cwb-pequeno-principe',
+        name: 'Hospital Pequeno Príncipe',
+        category: 'hospital',
+        subcategory: 'Referência em violência sexual contra crianças',
+        address: 'Rua Desembargador Motta, 1070 - Água Verde',
+        district: 'Água Verde',
+        city: 'Curitiba',
+        state: 'PR',
+        zipCode: '80250-060',
+        phone: '(41) 3310-1010',
+        openingHours: h24,
+        latitude: -25.4440,
+        longitude: -49.2775,
+        locationPrecision: 'aproximada',
+        services: const ['atendimento_violencia_sexual', 'atendimento_infantil'],
+        targetAudience: 'Crianças (até 11 ou 12 anos — as fontes divergem)',
+        verifiedAt: verificadoEm,
+        sourceName: 'TJPR — CEVID, Onde procurar ajuda',
+        sourceUrl: fonteTjpr,
       ),
     ];
-
-    if (categoryFilter == null || categoryFilter.isEmpty) {
-      return lista;
-    }
-    return lista.where((i) => i.category.toLowerCase() == categoryFilter.toLowerCase()).toList();
   }
 }

@@ -48,14 +48,24 @@ Legenda: `[ ]` pendente, `[x]` concluído.
 
 ## Rede de apoio
 
-- [x] Escolher município ou estado-piloto (São Paulo / Região Metropolitana).
+- [x] Escolher município ou estado-piloto (**Curitiba/PR** — substituiu o piloto inicial de São Paulo).
 - [x] Definir fonte dos dados (Supabase PostgreSQL + PostGIS).
 - [x] Criar modelo de instituição (`SupportInstitution`).
 - [x] Implementar prévia visual de mapa com filtros demonstrativos.
 - [x] Integrar consulta de dados de instituições verificadas com cálculo de distância (Supabase RPC `nearby_institutions`).
 - [x] Implementar tela completa da Rede de Apoio com busca textual, categorias, ação de ligar e rotas no mapa (`SupportNetworkPage`).
 - [x] Implementar filtros por serviço e categoria.
-- [ ] Exibir data da última verificação.
+- [x] Exibir data da última verificação e fonte oficial de cada instituição.
+- [x] Busca no servidor sem acento (RPC `search_institutions`, `03_busca_curadoria.sql`).
+- [x] Base inicial de Curitiba a partir de fontes oficiais (`04_seed_curitiba.sql`).
+- [x] Lista offline de contingência com dados de Curitiba verificados.
+- [x] Fila de revisão humana (`institution_review_queue`) e view `institutions_stale`.
+- [ ] Confirmar por telefone os contatos da base de Curitiba e registrar `verified_by`.
+- [ ] Conferir no mapa as coordenadas marcadas como `aproximada`.
+- [ ] Resolver divergência de endereço do Hospital do Trabalhador.
+- [ ] Importar CRAS e CREAS de Curitiba (FAS) para a fila de revisão.
+- [ ] Criar coleta programada (mensal) que compara fontes oficiais e abre pendências.
+- [ ] Criar painel simples para aprovar/rejeitar pendências da fila.
 
 ## Privacidade e segurança
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -6,128 +8,178 @@ import '../../../../core/theme/app_colors.dart';
 import '../../data/support_network_service.dart';
 import '../../domain/models/support_institution.dart';
 
+/// Grupo de categorias exibido como chip. Um chip pode reunir várias
+/// categorias do banco (ex.: "Acolhimento" = CREAS + CRAS + Centro de Referência).
+typedef CategoriaFiltro = ({
+  String id,
+  String label,
+  IconData icon,
+  List<String> categorias,
+});
+
 class SupportNetworkPage extends StatefulWidget {
-  const SupportNetworkPage({super.key});
+  const SupportNetworkPage({
+    super.key,
+    this.categoriaInicial,
+    this.buscarLocalizacaoAoIniciar = true,
+  });
 
   static const routeName = '/rede-apoio';
+
+  /// Id de um chip de [SupportNetworkPage.categoriasFiltro] para abrir já filtrado.
+  final String? categoriaInicial;
+
+  /// Se deve tentar obter a localização automaticamente no carregamento inicial.
+  final bool buscarLocalizacaoAoIniciar;
+
+  static const List<CategoriaFiltro> categoriasFiltro = [
+    (id: 'todos', label: 'Todos', icon: Icons.grid_view_rounded, categorias: []),
+    (
+      id: 'delegacias',
+      label: 'Delegacias',
+      icon: Icons.local_police_rounded,
+      categorias: ['delegacia_mulher', 'delegacia_comum'],
+    ),
+    (
+      id: 'acolhimento',
+      label: 'Acolhimento',
+      icon: Icons.favorite_rounded,
+      categorias: ['centro_referencia', 'creas', 'cras', 'ong'],
+    ),
+    (
+      id: 'juridico',
+      label: 'Jurídico',
+      icon: Icons.gavel_rounded,
+      categorias: ['defensoria', 'ministerio_publico', 'forum'],
+    ),
+    (
+      id: 'saude',
+      label: 'Saúde',
+      icon: Icons.local_hospital_rounded,
+      categorias: ['hospital', 'upa'],
+    ),
+  ];
 
   @override
   State<SupportNetworkPage> createState() => _SupportNetworkPageState();
 }
 
 class _SupportNetworkPageState extends State<SupportNetworkPage> {
-  List<SupportInstitution> _todasInstituicoes = [];
-  List<SupportInstitution> _instituicoesFiltradas = [];
+  static const _atrasoDigitacao = Duration(milliseconds: 400);
 
-  bool _carregando = true;
-  String? _erroLocalizacao;
-  Position? _posicaoAtual;
-  String _filtroCategoria = 'todos';
   final TextEditingController _buscaController = TextEditingController();
+  Timer? _debounce;
 
-  final List<({String id, String label, IconData icon})> _categorias = [
-    (id: 'todos', label: 'Todos', icon: Icons.grid_view_rounded),
-    (id: 'delegacia_mulher', label: 'Delegacias', icon: Icons.local_police_rounded),
-    (id: 'creas', label: 'Acolhimento', icon: Icons.favorite_rounded),
-    (id: 'defensoria', label: 'Defensoria', icon: Icons.gavel_rounded),
-    (id: 'hospital', label: 'Saúde', icon: Icons.local_hospital_rounded),
-  ];
+  List<SupportInstitution> _instituicoes = [];
+  bool _carregando = true;
+  bool _offline = false;
+  bool _buscandoLocalizacao = false;
+  String? _avisoLocalizacao;
+  Position? _posicaoAtual;
+  late String _filtroCategoria;
+
+  /// Identifica a busca mais recente; respostas antigas são descartadas.
+  int _buscaAtual = 0;
 
   @override
   void initState() {
     super.initState();
-    _carregarDados();
-    _buscaController.addListener(_aplicarFiltros);
+    final inicial = widget.categoriaInicial;
+    _filtroCategoria = SupportNetworkPage.categoriasFiltro.any((c) => c.id == inicial)
+        ? inicial!
+        : 'todos';
+    _buscaController.addListener(_aoDigitar);
+
+    // Mostra resultados imediatamente e, em paralelo, tenta a localização
+    // para reordenar por distância quando ela chegar.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _buscar();
+      if (widget.buscarLocalizacaoAoIniciar) {
+        _atualizarLocalizacao();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _buscaController.dispose();
     super.dispose();
   }
 
-  Future<void> _carregarDados({bool forcarGps = false}) async {
+  List<String> get _categoriasSelecionadas => SupportNetworkPage.categoriasFiltro
+      .firstWhere((c) => c.id == _filtroCategoria)
+      .categorias;
+
+  void _aoDigitar() {
+    setState(() {}); // atualiza o botão de limpar
+    _debounce?.cancel();
+    _debounce = Timer(_atrasoDigitacao, _buscar);
+  }
+
+  void _selecionarCategoria(String id) {
+    if (id == _filtroCategoria) return;
+    setState(() => _filtroCategoria = id);
+    _buscar();
+  }
+
+  Future<void> _buscar() async {
+    final idBusca = ++_buscaAtual;
+    setState(() => _carregando = true);
+
+    final resultado = await SupportNetworkService.buscarInstituicoes(
+      texto: _buscaController.text,
+      categorias: _categoriasSelecionadas,
+      lat: _posicaoAtual?.latitude,
+      lng: _posicaoAtual?.longitude,
+    );
+
+    if (!mounted || idBusca != _buscaAtual) return;
     setState(() {
-      _carregando = true;
-      _erroLocalizacao = null;
-    });
-
-    // 1. Tentar obter localização se disponível (com timeout de 3s)
-    Position? pos = _posicaoAtual;
-    if (pos == null || forcarGps) {
-      try {
-        pos = await LocationService.obterPosicaoAtual().timeout(
-          const Duration(seconds: 3),
-          onTimeout: () => null,
-        );
-        _posicaoAtual = pos;
-      } catch (_) {
-        pos = null;
-      }
-    }
-
-    if (pos == null) {
-      _erroLocalizacao = 'Localização desativada. Mostrando serviços gerais.';
-    }
-
-    // 2. Buscar instituições via PostGIS no Supabase
-    List<SupportInstitution> resultados = [];
-    try {
-      resultados = await SupportNetworkService.buscarInstituicoes(
-        lat: pos?.latitude,
-        lng: pos?.longitude,
-      );
-    } catch (_) {
-      resultados = [];
-    }
-
-    // Se a consulta remota vier vazia, garante que os pontos cadastrados sejam exibidos
-    if (resultados.isEmpty) {
-      resultados = SupportNetworkService.obterInstituicoesContingencia();
-    }
-
-    if (!mounted) return;
-
-    setState(() {
-      _todasInstituicoes = resultados;
+      _instituicoes = resultado.instituicoes;
+      _offline = resultado.offline;
       _carregando = false;
-      _aplicarFiltros();
     });
   }
 
-  void _aplicarFiltros() {
-    final query = _buscaController.text.trim().toLowerCase();
+  Future<void> _atualizarLocalizacao() async {
+    if (_buscandoLocalizacao) return;
     setState(() {
-      _instituicoesFiltradas = _todasInstituicoes.where((inst) {
-        // Filtro de categoria
-        if (_filtroCategoria != 'todos') {
-          if (_filtroCategoria == 'creas') {
-            final match = inst.category == 'creas' ||
-                inst.category == 'cras' ||
-                inst.category == 'centro_referencia';
-            if (!match) return false;
-          } else if (_filtroCategoria == 'defensoria') {
-            final match = inst.category == 'defensoria' ||
-                inst.category == 'ministerio_publico';
-            if (!match) return false;
-          } else if (inst.category != _filtroCategoria) {
-            return false;
-          }
-        }
-
-        // Filtro de busca textual
-        if (query.isNotEmpty) {
-          final nome = inst.name.toLowerCase();
-          final endereco = inst.address.toLowerCase();
-          final servicos = inst.services.join(' ').toLowerCase();
-          if (!nome.contains(query) && !endereco.contains(query) && !servicos.contains(query)) {
-            return false;
-          }
-        }
-
-        return true;
-      }).toList();
+      _buscandoLocalizacao = true;
+      _avisoLocalizacao = null;
     });
+
+    Position? posicao;
+    try {
+      // Tempo suficiente para a usuária responder ao pedido de permissão.
+      posicao = await LocationService.obterPosicaoAtual().timeout(
+        const Duration(seconds: 20),
+        onTimeout: () => null,
+      );
+    } catch (_) {
+      posicao = null;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _buscandoLocalizacao = false;
+      if (posicao != null) _posicaoAtual = posicao;
+      if (_posicaoAtual == null) {
+        _avisoLocalizacao = 'Sem localização: resultados em ordem alfabética.';
+      }
+    });
+
+    if (posicao != null) _buscar();
+  }
+
+  void _limparFiltros() {
+    _debounce?.cancel();
+    _buscaController.removeListener(_aoDigitar);
+    _buscaController.clear();
+    _buscaController.addListener(_aoDigitar);
+    setState(() => _filtroCategoria = 'todos');
+    _buscar();
   }
 
   void _abrirDetalhes(SupportInstitution inst) {
@@ -177,7 +229,7 @@ class _SupportNetworkPageState extends State<SupportNetworkPage> {
                     ),
                   ),
                   IconButton(
-                    onPressed: () => _carregarDados(forcarGps: true),
+                    onPressed: _buscar,
                     icon: const Icon(Icons.refresh_rounded),
                     tooltip: 'Atualizar locais',
                   ),
@@ -203,6 +255,11 @@ class _SupportNetworkPageState extends State<SupportNetworkPage> {
                 ),
                 child: TextField(
                   controller: _buscaController,
+                  textInputAction: TextInputAction.search,
+                  onSubmitted: (_) {
+                    _debounce?.cancel();
+                    _buscar();
+                  },
                   decoration: InputDecoration(
                     hintText: 'Buscar por nome, bairro ou serviço...',
                     hintStyle: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
@@ -210,6 +267,7 @@ class _SupportNetworkPageState extends State<SupportNetworkPage> {
                     suffixIcon: _buscaController.text.isNotEmpty
                         ? IconButton(
                             icon: const Icon(Icons.clear_rounded, size: 20),
+                            tooltip: 'Limpar busca',
                             onPressed: () => _buscaController.clear(),
                           )
                         : null,
@@ -227,20 +285,14 @@ class _SupportNetworkPageState extends State<SupportNetworkPage> {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
-                  children: _categorias.map((cat) {
-                    final selecionado = _filtroCategoria == cat.id;
+                  children: SupportNetworkPage.categoriasFiltro.map((cat) {
                     return Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: _CategoryChip(
                         label: cat.label,
                         icon: cat.icon,
-                        selected: selecionado,
-                        onTap: () {
-                          setState(() {
-                            _filtroCategoria = cat.id;
-                            _aplicarFiltros();
-                          });
-                        },
+                        selected: _filtroCategoria == cat.id,
+                        onTap: () => _selecionarCategoria(cat.id),
                       ),
                     );
                   }).toList(),
@@ -248,36 +300,25 @@ class _SupportNetworkPageState extends State<SupportNetworkPage> {
               ),
             ),
 
-            // ── Banner de Localização ──────────────────────────────────
-            if (_erroLocalizacao != null)
-              Container(
-                margin: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3E0),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFFFE0B2)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.info_outline_rounded, size: 18, color: Color(0xFFE65100)),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _erroLocalizacao!,
-                        style: const TextStyle(fontSize: 12, color: Color(0xFFE65100)),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => _carregarDados(forcarGps: true),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      child: const Text('Ativar GPS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
+            // ── Avisos: offline / localização ──────────────────────────
+            if (_offline)
+              const _AvisoBanner(
+                icon: Icons.cloud_off_rounded,
+                texto: 'Sem conexão: mostrando a lista essencial salva no aparelho '
+                    '(${SupportNetworkService.cidadePiloto}).',
+              ),
+            if (_buscandoLocalizacao)
+              const _AvisoBanner(
+                icon: Icons.my_location_rounded,
+                texto: 'Obtendo sua localização para ordenar por distância...',
+                neutro: true,
+              )
+            else if (_avisoLocalizacao != null)
+              _AvisoBanner(
+                icon: Icons.location_off_rounded,
+                texto: _avisoLocalizacao!,
+                acao: 'Usar localização',
+                onAcao: _atualizarLocalizacao,
               )
             else if (_posicaoAtual != null)
               Padding(
@@ -306,7 +347,7 @@ class _SupportNetworkPageState extends State<SupportNetworkPage> {
 
             // ── Lista de Locais ────────────────────────────────────────
             Expanded(
-              child: _carregando
+              child: _carregando && _instituicoes.isEmpty
                   ? const Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -314,67 +355,168 @@ class _SupportNetworkPageState extends State<SupportNetworkPage> {
                           CircularProgressIndicator(strokeWidth: 2.5),
                           SizedBox(height: 16),
                           Text(
-                            'Buscando rede de apoio próxima...',
+                            'Buscando rede de apoio...',
                             style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
                           ),
                         ],
                       ),
                     )
-                  : _instituicoesFiltradas.isEmpty
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(32),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.location_off_rounded, size: 56, color: AppColors.textSecondary),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Nenhum local encontrado',
-                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                ),
-                                const SizedBox(height: 8),
-                                const Text(
-                                  'Tente alterar os termos da busca ou selecionar outra categoria.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                                ),
-                                const SizedBox(height: 20),
-                                OutlinedButton.icon(
-                                  onPressed: () {
-                                    _buscaController.clear();
-                                    setState(() => _filtroCategoria = 'todos');
-                                    _carregarDados();
-                                  },
-                                  icon: const Icon(Icons.refresh_rounded, size: 18),
-                                  label: const Text('Ver todas as instituições'),
-                                  style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  ),
-                                ),
-                              ],
+                  : _instituicoes.isEmpty
+                      ? _ListaVazia(onLimpar: _limparFiltros)
+                      : Stack(
+                          children: [
+                            ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                              itemCount: _instituicoes.length,
+                              separatorBuilder: (_, __) => const SizedBox(height: 14),
+                              itemBuilder: (context, index) {
+                                final inst = _instituicoes[index];
+                                return _InstituicaoCard(
+                                  instituicao: inst,
+                                  onTap: () => _abrirDetalhes(inst),
+                                );
+                              },
                             ),
-                          ),
-                        )
-                      : ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                          itemCount: _instituicoesFiltradas.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 14),
-                          itemBuilder: (context, index) {
-                            final inst = _instituicoesFiltradas[index];
-                            return _InstituicaoCard(
-                              instituicao: inst,
-                              onTap: () => _abrirDetalhes(inst),
-                            );
-                          },
+                            if (_carregando)
+                              const Positioned(
+                                top: 0,
+                                left: 20,
+                                right: 20,
+                                child: LinearProgressIndicator(minHeight: 2),
+                              ),
+                          ],
                         ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── Widget: Aviso em faixa ───────────────────────────────────────────────────
+
+class _AvisoBanner extends StatelessWidget {
+  const _AvisoBanner({
+    required this.icon,
+    required this.texto,
+    this.acao,
+    this.onAcao,
+    this.neutro = false,
+  });
+
+  final IconData icon;
+  final String texto;
+  final String? acao;
+  final VoidCallback? onAcao;
+  final bool neutro;
+
+  @override
+  Widget build(BuildContext context) {
+    final cor = neutro ? AppColors.primary : const Color(0xFFE65100);
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: neutro ? AppColors.blueSoft : const Color(0xFFFFF3E0),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: neutro ? AppColors.border : const Color(0xFFFFE0B2)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: cor),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(texto, style: TextStyle(fontSize: 12, color: cor)),
+          ),
+          if (acao != null && onAcao != null)
+            TextButton(
+              onPressed: onAcao,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                visualDensity: VisualDensity.compact,
+              ),
+              child: Text(acao!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Widget: Lista vazia ──────────────────────────────────────────────────────
+
+class _ListaVazia extends StatelessWidget {
+  const _ListaVazia({required this.onLimpar});
+
+  final VoidCallback onLimpar;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.search_off_rounded, size: 56, color: AppColors.textSecondary),
+            const SizedBox(height: 16),
+            Text(
+              'Nenhum local encontrado',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Tente outra palavra ou categoria. Se precisar de orientação agora, '
+              'o Ligue 180 funciona 24 horas.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            ),
+            const SizedBox(height: 20),
+            OutlinedButton.icon(
+              onPressed: onLimpar,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Ver todas as instituições'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Widget: Selo de verificação ──────────────────────────────────────────────
+
+class _SeloVerificacao extends StatelessWidget {
+  const _SeloVerificacao({required this.instituicao});
+
+  final SupportInstitution instituicao;
+
+  @override
+  Widget build(BuildContext context) {
+    final verificado = instituicao.isVerified();
+    final cor = verificado ? const Color(0xFF2E7D32) : const Color(0xFFE65100);
+    return Row(
+      children: [
+        Icon(
+          verificado ? Icons.verified_rounded : Icons.error_outline_rounded,
+          size: 15,
+          color: cor,
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            instituicao.verificationLabel(),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: cor),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -392,6 +534,7 @@ class _InstituicaoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final temTelefone = instituicao.phone != null;
     return Material(
       color: AppColors.surface,
       borderRadius: BorderRadius.circular(20),
@@ -466,7 +609,9 @@ class _InstituicaoCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        instituicao.formattedDistance!,
+                        instituicao.hasApproximateLocation
+                            ? '~${instituicao.formattedDistance!}'
+                            : instituicao.formattedDistance!,
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w800,
@@ -498,6 +643,24 @@ class _InstituicaoCard extends StatelessWidget {
                 ],
               ),
 
+              // Público atendido
+              if (instituicao.targetAudience != null) ...[
+                const SizedBox(height: 6),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.groups_outlined, size: 16, color: AppColors.textSecondary),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        instituicao.targetAudience!,
+                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+
               const SizedBox(height: 6),
 
               // Horário
@@ -509,23 +672,28 @@ class _InstituicaoCard extends StatelessWidget {
                     color: instituicao.is24Hours ? const Color(0xFF2E7D32) : AppColors.textSecondary,
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    instituicao.formattedOpeningHours,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: instituicao.is24Hours ? FontWeight.w700 : FontWeight.w500,
-                      color: instituicao.is24Hours ? const Color(0xFF2E7D32) : AppColors.textSecondary,
+                  Expanded(
+                    child: Text(
+                      instituicao.formattedOpeningHours,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: instituicao.is24Hours ? FontWeight.w700 : FontWeight.w500,
+                        color: instituicao.is24Hours ? const Color(0xFF2E7D32) : AppColors.textSecondary,
+                      ),
                     ),
                   ),
                 ],
               ),
+
+              const SizedBox(height: 6),
+              _SeloVerificacao(instituicao: instituicao),
 
               const SizedBox(height: 14),
 
               // Botões de Ação rápida
               Row(
                 children: [
-                  if (instituicao.phone != null && instituicao.phone!.isNotEmpty)
+                  if (temTelefone) ...[
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => SupportNetworkService.ligar(instituicao.phone!),
@@ -544,15 +712,11 @@ class _InstituicaoCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                  if (instituicao.phone != null && instituicao.phone!.isNotEmpty)
                     const SizedBox(width: 8),
+                  ],
                   Expanded(
                     child: FilledButton.icon(
-                      onPressed: () => SupportNetworkService.abrirNoMapa(
-                        latitude: instituicao.latitude,
-                        longitude: instituicao.longitude,
-                        endereco: '${instituicao.name}, ${instituicao.address}, ${instituicao.city}',
-                      ),
+                      onPressed: () => SupportNetworkService.abrirNoMapa(instituicao),
                       icon: const Icon(Icons.directions_rounded, size: 16),
                       label: const Text('Como chegar', style: TextStyle(fontSize: 12)),
                       style: FilledButton.styleFrom(
@@ -581,161 +745,221 @@ class _DetalhesInstituicaoSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Barra de puxar
-          Center(
-            child: Container(
-              width: 44,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: BorderRadius.circular(2),
+    final telefones = [instituicao.phone, instituicao.phone2].whereType<String>().toList();
+    const rotulo = TextStyle(fontSize: 12, color: AppColors.textSecondary);
+    const valor = TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary);
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.75,
+      minChildSize: 0.4,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (context, scrollController) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: ListView(
+          controller: scrollController,
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+          children: [
+            // Barra de puxar
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-          // Cabeçalho
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: instituicao.softThemeColor,
-                  borderRadius: BorderRadius.circular(16),
+            // Cabeçalho
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: instituicao.softThemeColor,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(instituicao.icon, color: instituicao.themeColor, size: 28),
                 ),
-                child: Icon(instituicao.icon, color: instituicao.themeColor, size: 28),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        instituicao.categoryLabel,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: instituicao.themeColor,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        instituicao.name,
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                      ),
+                      if (instituicao.subcategory != null) ...[
+                        const SizedBox(height: 2),
+                        Text(instituicao.subcategory!, style: rotulo),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+            _SeloVerificacao(instituicao: instituicao),
+            const SizedBox(height: 8),
+
+            // Endereço
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.place_rounded, color: AppColors.primary),
+              title: const Text('Endereço', style: rotulo),
+              subtitle: Text(
+                '${instituicao.address}\n${instituicao.city} - ${instituicao.state}'
+                '${instituicao.zipCode != null ? ' • CEP: ${instituicao.zipCode}' : ''}'
+                '${instituicao.hasApproximateLocation ? '\nPosição no mapa aproximada: confira o endereço.' : ''}',
+                style: valor,
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      instituicao.categoryLabel,
-                      style: TextStyle(
+            ),
+
+            // Público atendido
+            if (instituicao.targetAudience != null)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.groups_rounded, color: AppColors.primary),
+                title: const Text('Quem é atendido', style: rotulo),
+                subtitle: Text(instituicao.targetAudience!, style: valor),
+              ),
+
+            // Horário
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.schedule_rounded, color: AppColors.primary),
+              title: const Text('Horário de atendimento', style: rotulo),
+              subtitle: Text(
+                instituicao.formattedOpeningHours,
+                style: valor.copyWith(
+                  color: instituicao.is24Hours ? const Color(0xFF2E7D32) : AppColors.textPrimary,
+                ),
+              ),
+            ),
+
+            // Telefones
+            if (telefones.isNotEmpty)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.phone_rounded, color: AppColors.primary),
+                title: const Text('Telefones', style: rotulo),
+                subtitle: Text(telefones.join('  •  '), style: valor),
+              ),
+
+            // Serviços Oferecidos
+            if (instituicao.services.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              const Text(
+                'Serviços disponíveis:',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: instituicao.servicesLabels.map((label) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Text(
+                      label,
+                      style: const TextStyle(
                         fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: instituicao.themeColor,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      instituicao.name,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-                    ),
-                  ],
+                  );
+                }).toList(),
+              ),
+            ],
+
+            // Fonte oficial
+            if (instituicao.sourceUrl != null) ...[
+              const SizedBox(height: 16),
+              InkWell(
+                onTap: () => SupportNetworkService.abrirFonte(instituicao.sourceUrl!),
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.open_in_new_rounded, size: 16, color: AppColors.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Fonte: ${instituicao.sourceName ?? 'página oficial'}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.primary,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
-          ),
 
-          const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
-          // Informações de Endereço
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.place_rounded, color: AppColors.primary),
-            title: const Text('Endereço', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-            subtitle: Text(
-              '${instituicao.address}\n${instituicao.city} - ${instituicao.state}${instituicao.zipCode != null ? ' • CEP: ${instituicao.zipCode}' : ''}',
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-            ),
-          ),
-
-          // Horário
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.schedule_rounded, color: AppColors.primary),
-            title: const Text('Horário de Atendimento', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-            subtitle: Text(
-              instituicao.formattedOpeningHours,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: instituicao.is24Hours ? const Color(0xFF2E7D32) : AppColors.textPrimary,
-              ),
-            ),
-          ),
-
-          // Serviços Oferecidos
-          if (instituicao.services.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            const Text(
-              'Serviços disponíveis:',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: instituicao.services.map((servico) {
-                final label = servico.replaceAll('_', ' ').toUpperCase();
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: AppColors.background,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.border),
+            // Ações principais
+            Row(
+              children: [
+                if (instituicao.phone != null) ...[
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => SupportNetworkService.ligar(instituicao.phone!),
+                      icon: const Icon(Icons.phone_rounded),
+                      label: const Text('Ligar'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                    ),
                   ),
-                  child: Text(
-                    label,
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
-
-          const SizedBox(height: 24),
-
-          // Ações principais
-          Row(
-            children: [
-              if (instituicao.phone != null && instituicao.phone!.isNotEmpty) ...[
+                  const SizedBox(width: 12),
+                ],
                 Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => SupportNetworkService.ligar(instituicao.phone!),
-                    icon: const Icon(Icons.phone_rounded),
-                    label: const Text('Ligar'),
-                    style: OutlinedButton.styleFrom(
+                  child: FilledButton.icon(
+                    onPressed: () => SupportNetworkService.abrirNoMapa(instituicao),
+                    icon: const Icon(Icons.directions_rounded),
+                    label: const Text('Como chegar'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: instituicao.themeColor,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
               ],
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: () => SupportNetworkService.abrirNoMapa(
-                    latitude: instituicao.latitude,
-                    longitude: instituicao.longitude,
-                    endereco: '${instituicao.name}, ${instituicao.address}, ${instituicao.city}',
-                  ),
-                  icon: const Icon(Icons.directions_rounded),
-                  label: const Text('Como chegar'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: instituicao.themeColor,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -758,46 +982,50 @@ class _CategoryChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
-            width: 1.2,
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.primary : AppColors.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: selected ? AppColors.primary : AppColors.border,
+              width: 1.2,
+            ),
+            boxShadow: selected
+                ? const [
+                    BoxShadow(
+                      color: AppColors.shadowMedium,
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
-          boxShadow: selected
-              ? const [
-                  BoxShadow(
-                    color: AppColors.shadowMedium,
-                    blurRadius: 6,
-                    offset: Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: selected ? Colors.white : AppColors.textSecondary,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: selected ? Colors.white : AppColors.textPrimary,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: selected ? Colors.white : AppColors.textSecondary,
               ),
-            ),
-          ],
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: selected ? Colors.white : AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -14,6 +14,10 @@ Explicar a proposta com linguagem clara, apresentar limites de segurança e orie
 - Como funcionam contatos de confiança e rede de apoio.
 - Política de privacidade, limitações e contato do projeto.
 
+## Página /acompanhar
+
+Página em que a pessoa de confiança acompanha a localização ao vivo, sem instalar o app. Recebe o token no fragmento da URL (`/acompanhar#t=<viewer_token>`) e consulta a RPC `location_share_view` a cada 15 s. Contrato, estados e exemplo em [docs/API.md](../docs/API.md#location_share_view-página-acompanhar). Depois de publicada, o endereço vai para o app em `--dart-define=TRACKING_PAGE_URL=...`.
+
 ## Limites
 
 Não coletar relatos, localização, documentos, provas ou dados sensíveis na landing page. Ela não substitui atendimento de emergência.

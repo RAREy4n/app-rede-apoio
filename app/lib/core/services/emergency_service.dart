@@ -12,21 +12,22 @@ class EmergencyService {
   /// Abre o discador com o número 190 (Polícia Militar).
   ///
   /// Retorna `true` se o discador foi aberto com sucesso.
-  static Future<bool> ligar190() => _discar('190');
+  static Future<bool> ligar190() => discar('190');
 
   /// Abre o discador com o número 180 (Central de Atendimento à Mulher).
   ///
   /// Retorna `true` se o discador foi aberto com sucesso.
-  static Future<bool> ligar180() => _discar('180');
+  static Future<bool> ligar180() => discar('180');
 
-  /// Abre o discador com um número arbitrário.
-  static Future<bool> _discar(String numero) async {
+  /// Abre o discador com um número (ex.: canal vindo de `get_app_bootstrap`).
+  ///
+  /// Não usa `canLaunchUrl`: no Android 11+ ele pode responder `false` mesmo
+  /// com discador disponível. Se retornar `false`, a interface DEVE mostrar o
+  /// número em destaque para a usuária discar manualmente.
+  static Future<bool> discar(String numero) async {
     final uri = Uri(scheme: 'tel', path: numero);
     try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
-        return true;
-      }
+      return await launchUrl(uri);
     } catch (_) {
       // Dispositivo pode não suportar chamadas (ex.: tablet sem SIM).
     }

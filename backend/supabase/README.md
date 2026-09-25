@@ -1,61 +1,79 @@
-# Configuração do Supabase — Rede de Apoio
+# Supabase — Rede de Apoio
 
-Scripts para o banco no **Supabase** (plano gratuito). Piloto atual: **Curitiba/PR**.
+Piloto atual: **Curitiba/PR**. Contrato da API para o front: [docs/API.md](../../docs/API.md).
 
-## 1. Criar o projeto
+## Regras do banco
 
-1. Acesse [supabase.com](https://supabase.com) e crie uma conta.
-2. Clique em **New Project** e escolha a região `sa-east-1` (São Paulo).
-3. Guarde a senha do banco gerada.
+- **Toda mudança é uma migration nova** em `migrations/`, com nome `AAAAMMDDHHMMSS_descricao.sql`. Nunca edite uma migration que já foi aplicada.
+- As migrations são **idempotentes**: rodar de novo não duplica dados nem quebra.
+- Tabelas com dados sensíveis (`location_shares`, `institution_review_queue`) têm RLS ativo **sem política pública**. O front só usa as funções RPC.
+- Depois de mudar o banco, atualize `docs/API.md` e rode `tests/api_test.sql`.
 
-## 2. Executar os scripts (SQL Editor → New Query → Run), nesta ordem
+## Aplicar as migrations
 
-| Ordem | Arquivo | O que faz |
-| --- | --- | --- |
-| 1 | [01_schema.sql](01_schema.sql) | PostGIS, tabelas `institutions` e `guides`, RLS de leitura pública e RPC `nearby_institutions`. |
-| 2 | [02_seed.sql](02_seed.sql) | Guias de orientação e instituições de demonstração do antigo piloto SP. |
-| 3 | [03_busca_curadoria.sql](03_busca_curadoria.sql) | Busca sem acento (`search_institutions`), campos de fonte/verificação, fila de revisão e bloqueio de Casa-Abrigo. |
-| 4 | [04_seed_curitiba.sql](04_seed_curitiba.sql) | Base inicial de Curitiba (fontes oficiais) e desativação dos dados de SP. |
+### Opção A — Supabase CLI (recomendado)
 
-Os scripts 03 e 04 são idempotentes: podem ser executados de novo sem duplicar dados.
-
-## 3. Conectar ao app Flutter
-
-Em **Project Settings → API**, copie a **Project URL** e a **anon key** (pública, protegida por RLS) para `app/lib/core/config/supabase_config.dart`.
-
-O app busca instituições pela RPC:
-
-```dart
-final response = await Supabase.instance.client.rpc(
-  'search_institutions',
-  params: {
-    'q': 'delegacia cabral',          // opcional, ignora acentos
-    'lat': -25.43, 'lng': -49.27,     // opcional, ordena por distância
-    'filter_categories': ['delegacia_mulher', 'delegacia_comum'], // opcional
-    'max_results': 30,
-  },
-);
+```bash
+cd backend
+supabase login
+supabase link --project-ref xozcsujnjzoinqhifgfm
 ```
 
-Sem internet, o app usa a lista de contingência em `support_network_service.dart`, que deve espelhar os registros verificados do `04_seed_curitiba.sql`.
+**Só na primeira vez, no banco de produção atual:** os antigos `01_schema.sql` a `04_seed_curitiba.sql` já foram aplicados à mão. Marque as migrations equivalentes como aplicadas:
 
-## 4. Curadoria dos dados (obrigatória em produção)
+```bash
+supabase migration repair --status applied 20260920120000 20260920120100 20260924120000 20260924120100
+```
+
+Depois, sempre:
+
+```bash
+supabase db push      # aplica só as migrations novas
+```
+
+Para um banco local de desenvolvimento: `supabase start` e `supabase db reset` (precisa do Docker).
+
+### Opção B — SQL Editor do painel
+
+Cole e rode, **em ordem**, os arquivos de `migrations/` que ainda não foram aplicados. No banco de produção atual faltam só:
+
+1. `20260925120000_canais_categorias_conteudo.sql`
+2. `20260925120100_compartilhamento_localizacao.sql`
+
+### Limpeza automática da localização
+
+A migration de localização tenta agendar a limpeza com **pg_cron** a cada 15 min. Se o painel avisar que o pg_cron não está habilitado, ative em **Database → Extensions → pg_cron** e rode a migration de novo. Mesmo sem pg_cron, a limpeza roda a cada nova sessão criada.
+
+## Testar
+
+Cole `tests/api_test.sql` no SQL Editor e rode. Ele simula o app (papel `anon`), testa todo o contrato e desfaz tudo no final (`ROLLBACK`), então é seguro em produção. O resultado esperado são 4 avisos `ok: ...`. Se algo quebrar, aparece `FALHOU: ...`.
+
+Com o CLI ou psql:
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/api_test.sql
+```
+
+## Curadoria dos dados (obrigatória em produção)
 
 A base é **curada**: nenhum dado vindo de busca automática é publicado sem revisão humana.
 
-- **Fonte e verificação:** cada instituição tem `source_name`, `source_url`, `verified_at` e `verified_by`. O app mostra "Verificado em dd/mm/aaaa" ou "Dados a confirmar".
-- **Validade:** registros sem verificação há mais de 180 dias aparecem na view `institutions_stale` e o app os marca como possivelmente desatualizados.
+- **Instituições:** cada uma tem `source_name`, `source_url`, `verified_at` e `verified_by`. O app mostra "Verificado em dd/mm/aaaa" ou "Dados a confirmar". Registros sem verificação há mais de 180 dias aparecem na view `institutions_stale`.
 - **Fila de revisão:** novas instituições, alterações e reverificações entram em `institution_review_queue` com status `pendente`. Só quem tem a `service_role` (painel/admin) lê e aprova.
-- **Coordenadas:** `location_precision = 'aproximada'` indica posição estimada. O app usa o endereço (e não a coordenada) na rota "Como chegar" nesses casos.
-- **Sigilo:** a categoria `casa_abrigo` nunca é retornada pela RLS nem pela RPC. Endereços de abrigos não devem ser cadastrados.
+- **Coordenadas:** `location_precision = 'aproximada'` indica posição estimada. O app usa o endereço na rota "Como chegar" nesses casos.
+- **Canais de emergência:** tabela `emergency_channels`, com fonte e data de verificação.
+- **Guias de direitos:** tabela `guides`. `reviewed_at` fica vazio até um profissional da rede de atendimento revisar o texto.
+- **Sigilo:** a categoria `casa_abrigo` nunca é retornada. Endereços de abrigos não devem ser cadastrados.
 
-Rotina sugerida (mensal):
+Rotina mensal sugerida:
 
-1. Consultar `select * from institutions_stale;` e as pendências `select * from institution_review_queue where status = 'pendente';`.
+1. `select * from institutions_stale;` e `select * from institution_review_queue where status = 'pendente';`
 2. Conferir cada item na fonte oficial e, se possível, por telefone.
 3. Atualizar o registro (`verified_at = now()`, `verified_by = '<nome>'`) e marcar a pendência como `aprovado` ou `rejeitado`.
 
-Fontes oficiais usadas no levantamento de Curitiba (24/09/2026):
+Para mudar dados em produção, prefira uma migration nova (fica registrado no Git) a editar pelo painel.
+
+## Fontes oficiais usadas no levantamento de Curitiba (24/09/2026)
 
 - [Prefeitura — Rede de Atenção às mulheres em situação de violências](https://mulhereigualdade.curitiba.pr.gov.br/conteudo/rede-de-atencao-as-mulheres-em-situacao-de-violencias/12)
 - [Prefeitura — Portal Locais: Casa da Mulher Brasileira](https://locais.curitiba.pr.gov.br/centro-de-referencia-de-atendimento-a-mulher-casa-da-mulher-brasileira/2117)

@@ -1,6 +1,6 @@
 -- ============================================================================
--- Rede de Apoio — 03: Busca de instituições e curadoria de dados
--- Execute no SQL Editor do Supabase DEPOIS de 01_schema.sql e 02_seed.sql.
+-- Rede de Apoio — Migration: busca de instituições e curadoria (antigo 03)
+-- Depende de: 20260920120000_schema_inicial.
 -- O script é idempotente: pode ser executado mais de uma vez.
 --
 -- O que este script faz:

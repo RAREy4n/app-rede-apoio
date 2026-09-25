@@ -1,32 +1,18 @@
 # Estrutura do Projeto
 
+A estrutura de pastas completa e a convenção por funcionalidade estão em [ARQUITETURA.md](ARQUITETURA.md), seção 5.
+
+Resumo:
+
 ```text
 app-rede-apoio/
-├── app/                         # Aplicativo Flutter
-│   ├── lib/
-│   │   ├── app/                 # Configuração do aplicativo
-│   │   ├── core/                # Tema e componentes compartilhados
-│   │   └── features/            # Funcionalidades isoladas
-│   │       ├── onboarding/
-│   │       ├── home/
-│   │       ├── trusted_contact/
-│   │       ├── support_network/
-│   │       └── guidance/
-│   └── test/                    # Testes Flutter
-├── landing-page/                # Landing page React/JavaScript
-├── docs/                        # Escopo e decisões
-└── README.md
+├── app/                 # App Flutter
+│   ├── lib/api.dart     # Camada de dados: único import que as telas usam
+│   ├── lib/core/        # Configuração, conteúdo, serviços do aparelho, tema
+│   └── lib/features/    # Cada funcionalidade: data/ domain/ presentation/
+├── backend/supabase/    # Migrations (banco + API) e testes
+├── landing-page/        # Landing page e página /acompanhar
+└── docs/                # Arquitetura, API, escopo e pendências
 ```
 
-## Regra de organização do app
-
-Cada funcionalidade deve permanecer em sua pasta dentro de `features`. Conforme o projeto crescer, uma funcionalidade pode receber:
-
-```text
-feature/
-├── data/          # APIs, armazenamento e modelos externos
-├── domain/        # Regras e entidades de negócio
-└── presentation/  # Telas, componentes e estado da interface
-```
-
-No MVP, só criaremos essas camadas quando houver código real para evitar pastas vazias e complexidade prematura.
+Regra: `data/` e `domain/` ficam prontos para o front; `presentation/` é onde o front trabalha. Crie camadas só quando houver código real.

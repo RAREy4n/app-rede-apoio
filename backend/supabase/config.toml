@@ -1,0 +1,4 @@
+# Configuração do Supabase CLI (https://supabase.com/docs/guides/cli).
+# Campos não informados usam os padrões do CLI.
+# Projeto remoto: vincule com `supabase link --project-ref xozcsujnjzoinqhifgfm`.
+project_id = "rede-apoio"

@@ -2,6 +2,15 @@
 
 Legenda: `[ ]` pendente, `[x]` concluído.
 
+## Arquitetura
+
+- [x] Backend só Supabase, organizado em migrations (`backend/supabase/`).
+- [x] Contrato da API para o front (`docs/API.md`) e camada de dados (`app/lib/api.dart`).
+- [x] Testes do contrato (`backend/supabase/tests/api_test.sql`).
+- [ ] Aplicar as migrations novas no Supabase de produção.
+- [ ] Rodar `flutter pub get`, `flutter analyze` e `flutter test` com a nova camada de dados.
+- [ ] Revisão dos guias de direitos por profissional da rede (`guides.reviewed_at`).
+
 ## Base do projeto
 
 - [x] Definir escopo inicial.
@@ -22,10 +31,11 @@ Legenda: `[ ]` pendente, `[x]` concluído.
 
 ## Configuração inicial
 
-- [ ] Definir se haverá conta ou somente configuração local no MVP.
+- [x] Definir se haverá conta ou somente configuração local no MVP (sem conta; pessoa de confiança só no aparelho).
 - [x] Criar fluxo inicial de cadastro local de pessoa de confiança.
 - [x] Cadastrar nome e telefone em interface de demonstração.
-- [ ] Persistir o contato localmente com proteção adequada.
+- [x] Camada de dados para persistir o contato com criptografia (`TrustedContactRepository`).
+- [ ] Tela de cadastro usar `TrustedContactRepository` (front).
 - [ ] Criar envio de mensagem de teste.
 - [x] Permitir pular configuração e acessar a tela inicial.
 
@@ -33,6 +43,8 @@ Legenda: `[ ]` pendente, `[x]` concluído.
 
 - [x] Abrir ligação para 190 com confirmação.
 - [x] Abrir ligação ou canal oficial do Ligue 180.
+- [x] Canais de emergência vindos da API com cache offline (`get_app_bootstrap`).
+- [x] Corrigir abertura do discador no Android 11+ (manifest + sem `canLaunchUrl`).
 - [ ] Exibir aviso sobre limitações do aplicativo.
 - [ ] Testar funcionamento sem internet quando aplicável.
 
@@ -40,10 +52,13 @@ Legenda: `[ ]` pendente, `[x]` concluído.
 
 - [x] Solicitar permissão de localização somente quando necessária.
 - [x] Enviar localização atual por WhatsApp ou SMS.
-- [ ] Definir backend para localização temporária.
-- [ ] Criar link seguro e expirável.
-- [ ] Permitir duração de 15, 30 ou 60 minutos.
-- [ ] Permitir encerramento e revogação imediatos.
+- [x] Definir backend para localização temporária (Supabase, RPCs `location_share_*`).
+- [x] Criar link seguro e expirável (tokens separados de envio e visualização).
+- [x] Permitir duração de 15, 30 ou 60 minutos (`LocationShareController`).
+- [x] Permitir encerramento e revogação imediatos.
+- [ ] Criar e hospedar a página `/acompanhar`.
+- [ ] Tela "Avisar pessoa de confiança" com confirmação (front).
+- [ ] Envio em segundo plano (serviço em primeiro plano no Android).
 - [ ] Projetar falhas de GPS, bateria e rede.
 
 ## Rede de apoio

@@ -39,5 +39,9 @@ app/ios/Flutter/ephemeral/
 landing-page/node_modules/
 landing-page/dist/
 landing-page/.next/
-backend/node_modules/
-backend/dist/
+backend/legacy-node/node_modules/
+backend/legacy-node/dist/
+
+# Supabase CLI
+backend/supabase/.temp/
+backend/supabase/.branches/

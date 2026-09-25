@@ -1,6 +1,6 @@
 -- ============================================================================
--- Rede de Apoio — 04: Base inicial do piloto Curitiba/PR
--- Execute DEPOIS de 03_busca_curadoria.sql. Idempotente (usa external_key).
+-- Rede de Apoio — Migration: base inicial do piloto Curitiba/PR (antigo 04)
+-- Depende de: 20260924120000_busca_curadoria. Idempotente (usa external_key).
 --
 -- Levantamento feito em 24/09/2026 a partir de fontes oficiais online.
 -- verified_at marca a data em que o registro foi CONFERIDO com a fonte oficial

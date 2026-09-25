@@ -9,6 +9,8 @@ Este arquivo é o ponto de entrada para qualquer IA ou desenvolvedor que for con
 Leia também:
 
 - [README.md](README.md): visão geral, execução e fluxo de interface.
+- [docs/ARQUITETURA.md](docs/ARQUITETURA.md): arquitetura, decisões e funcionalidades.
+- [docs/API.md](docs/API.md): contrato da API que o front consome.
 - [docs/AMBIENTE-ANDROID.md](docs/AMBIENTE-ANDROID.md): instalação, emulador, validação e diagnóstico do Android.
 - [docs/CONTEXTO-PARA-IAS.md](docs/CONTEXTO-PARA-IAS.md): produto, limites e decisões.
 - [docs/ESCOPO.md](docs/ESCOPO.md): recorte acadêmico e MVP.
@@ -16,11 +18,11 @@ Leia também:
 
 ## Estado atual
 
-- O aplicativo Flutter em `app/` funciona no Android e foi validado no emulador `medium_phone`.
-- Há uma primeira interface de onboarding e início; ela usa conteúdo de demonstração.
-- A landing page React em `landing-page/` ainda não foi inicializada.
-- O backend em `backend/` ainda não foi implementado.
-- Não há integração real com WhatsApp, localização, SOS, boletim de ocorrência ou APIs governamentais.
+- Backend 100% Supabase em `backend/supabase/migrations/` (a API Node em `backend/legacy-node/` está arquivada).
+- Camada de dados do app pronta em `app/lib/api.dart`: rede de apoio, canais de emergência, guias, pessoa de confiança (só no aparelho) e localização ao vivo.
+- Telas existentes: onboarding, início, cadastro de pessoa de confiança (ainda sem salvar) e rede de apoio.
+- Piloto: Curitiba/PR.
+- Não há integração com polícia, BO ou órgãos públicos.
 
 ## Regras inegociáveis de segurança
 
@@ -34,7 +36,9 @@ Leia também:
 
 ## Convenções técnicas
 
-- Flutter: organize código em `app/lib/features/`, `app/lib/core/` e `app/lib/app/`.
+- Flutter: organize código em `app/lib/features/`, `app/lib/core/` e `app/lib/app/`. Em cada feature: `data/` (acesso a dados), `domain/` (modelos) e `presentation/` (telas).
+- Telas só usam o que está exportado em `app/lib/api.dart`; não chamam o Supabase diretamente.
+- Banco: toda mudança é uma migration nova em `backend/supabase/migrations/`; atualize `docs/API.md` e rode `backend/supabase/tests/api_test.sql`.
 - Landing page: React com JavaScript, em `landing-page/`.
 - Todo pacote novo exige justificativa de privacidade, manutenção e licença.
 - Não versionar APKs, caches, arquivos locais do Android, chaves, tokens ou arquivos `.env`.
@@ -43,4 +47,4 @@ Leia também:
 
 ## Próxima entrega recomendada
 
-Construir a tela local de **Pessoa de confiança**: nome, telefone, revisão das permissões e opção de pular. Nesta etapa, não integrar GPS, WhatsApp, backend ou envio real de alertas.
+Telas do front consumindo `lib/api.dart` (ver docs/ARQUITETURA.md, seção 4): mapa da rede de apoio, botão de emergência com canais do bootstrap, salvar a pessoa de confiança, tela "Avisar pessoa de confiança" com confirmação e botão de parar, tela de direitos e saída rápida. Também criar a página web `/acompanhar`.

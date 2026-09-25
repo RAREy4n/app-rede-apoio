@@ -54,6 +54,15 @@
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="https"/>
         </intent>
+        <!-- url_launcher usa VIEW para tel: e sms: (Android 11+ exige declarar) -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="tel"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="sms"/>
+        </intent>
         <!-- Necessário para url_launcher: abrir SMS -->
         <intent>
             <action android:name="android.intent.action.SENDTO"/>

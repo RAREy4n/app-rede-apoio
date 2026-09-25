@@ -42,8 +42,7 @@ class ShareLocationService {
     );
 
     try {
-      if (await canLaunchUrl(whatsappUri)) {
-        await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
+      if (await launchUrl(whatsappUri, mode: LaunchMode.externalApplication)) {
         return ShareResult.sucesso;
       }
     } catch (_) {
@@ -76,8 +75,7 @@ class ShareLocationService {
     final smsUri = Uri.parse('sms:$telefone?body=$mensagemCodificada');
 
     try {
-      if (await canLaunchUrl(smsUri)) {
-        await launchUrl(smsUri);
+      if (await launchUrl(smsUri)) {
         return ShareResult.sucesso;
       }
     } catch (_) {
@@ -129,8 +127,7 @@ class ShareLocationService {
     );
 
     try {
-      if (await canLaunchUrl(whatsappUri)) {
-        await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
+      if (await launchUrl(whatsappUri, mode: LaunchMode.externalApplication)) {
         return ShareResult.sucesso;
       }
     } catch (_) {

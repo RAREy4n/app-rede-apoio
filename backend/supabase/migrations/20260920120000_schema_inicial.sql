@@ -1,6 +1,6 @@
 -- ============================================================================
--- Rede de Apoio — Schema Supabase
--- Execute no SQL Editor do Supabase Dashboard
+-- Rede de Apoio — Migration 1: schema inicial (antigo 01_schema.sql)
+-- Idempotente: pode rodar em um banco onde o 01_schema.sql já foi aplicado.
 -- ============================================================================
 
 -- 1. Habilitar extensões necessárias
@@ -43,9 +43,14 @@ CREATE INDEX IF NOT EXISTS idx_institutions_active   ON public.institutions(is_a
 -- RLS (Row Level Security) — leitura pública, escrita restrita
 ALTER TABLE public.institutions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Instituições são visíveis publicamente"
-  ON public.institutions FOR SELECT
-  USING (is_active = true);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND policyname = 'Instituições são visíveis publicamente') THEN
+    CREATE POLICY "Instituições são visíveis publicamente"
+      ON public.institutions FOR SELECT
+      USING (is_active = true);
+  END IF;
+END $$;
 
 -- ============================================================================
 -- 3. TABELA: guides (orientações e direitos)
@@ -72,14 +77,19 @@ CREATE INDEX IF NOT EXISTS idx_guides_active   ON public.guides(is_active);
 -- RLS — leitura pública
 ALTER TABLE public.guides ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Guias são visíveis publicamente"
-  ON public.guides FOR SELECT
-  USING (is_active = true);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND policyname = 'Guias são visíveis publicamente') THEN
+    CREATE POLICY "Guias são visíveis publicamente"
+      ON public.guides FOR SELECT
+      USING (is_active = true);
+  END IF;
+END $$;
 
 -- ============================================================================
 -- 4. FUNÇÃO RPC: nearby_institutions (busca geoespacial)
 -- ============================================================================
--- Chamada pelo Flutter via: supabase.rpc('nearby_institutions', params: {...})
+-- LEGADO: o app usa search_institutions (migration de busca). Mantida por compatibilidade.
 
 CREATE OR REPLACE FUNCTION public.nearby_institutions(
   lat FLOAT,

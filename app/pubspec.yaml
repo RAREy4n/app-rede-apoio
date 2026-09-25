@@ -13,6 +13,8 @@ dependencies:
   geolocator: ^13.0.2
   permission_handler: ^11.3.1
   supabase_flutter: ^2.17.2
+  flutter_secure_storage: ^9.2.2 # pessoa de confiança criptografada no aparelho
+  shared_preferences: ^2.3.2 # cache offline do conteúdo (canais e guias)
 
 dev_dependencies:
   flutter_test:
@@ -20,3 +22,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/offline/

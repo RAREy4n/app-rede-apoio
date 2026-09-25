@@ -6,19 +6,22 @@ Projeto extensionista para facilitar o acesso de mulheres à rede de proteção,
 
 | Área | Situação |
 | --- | --- |
-| Aplicativo Flutter | Estrutura funcional, com onboarding e tela inicial demonstrativos. |
-| Android | SDK, emulador e build validados localmente. |
+| Backend (Supabase) | Pronto para o MVP: rede de apoio, canais de emergência, guias de direitos e localização ao vivo. Ver [docs/API.md](docs/API.md). |
+| Camada de dados do app | Pronta em `app/lib/api.dart`: o front só consome. |
+| Telas do app | Onboarding, Início e Rede de Apoio funcionais; demais telas a cargo do front. |
+| Página /acompanhar | A criar (contrato em [docs/API.md](docs/API.md)). |
 | Landing page React | Planejada, ainda não inicializada. |
-| Backend | Planejado, ainda não implementado. |
-| Integrações sensíveis | Não existem integrações reais com SOS, WhatsApp, GPS, BO ou órgãos públicos. |
+| Integrações | Discador, WhatsApp/SMS e GPS com confirmação da usuária. Nenhuma integração com polícia, BO ou órgãos públicos. |
+
+Piloto: **Curitiba/PR**. Arquitetura e funcionalidades: [docs/ARQUITETURA.md](docs/ARQUITETURA.md).
 
 ## Estrutura
 
 ```text
 app-rede-apoio/
-├── app/             # Aplicativo Flutter/Dart
-├── landing-page/    # Futura landing page React/JavaScript
-├── backend/         # Futura API e regras de negócio
+├── app/             # Aplicativo Flutter/Dart (lib/api.dart = camada de dados)
+├── landing-page/    # Futura landing page React/JavaScript + página /acompanhar
+├── backend/         # Supabase: migrations, testes da API (legacy-node arquivado)
 ├── docs/            # Escopo, contexto e pendências
 ├── AGENTS.md        # Instruções para IAs e colaboradores
 └── README.md        # Visão geral do projeto
@@ -72,7 +75,7 @@ O acesso a ajuda imediata deve permanecer disponível sem login. Itens marcados 
 
 - **Mobile:** Flutter e Dart.
 - **Landing page:** React e JavaScript.
-- **Backend:** a definir após a validação do MVP e dos requisitos de LGPD, segurança e operação.
+- **Backend:** Supabase (PostgreSQL + PostGIS, RPCs em SQL). Sem servidor próprio.
 
 ## Segurança e limites do produto
 
@@ -84,6 +87,9 @@ O acesso a ajuda imediata deve permanecer disponível sem login. Itens marcados 
 ## Documentação para continuar o projeto
 
 - [Guia para IAs e colaboradores](AGENTS.md)
+- [Arquitetura e funcionalidades](docs/ARQUITETURA.md)
+- [API para o front](docs/API.md)
+- [Backend Supabase](backend/README.md)
 - [Ambiente Android e testes](docs/AMBIENTE-ANDROID.md)
 - [Escopo do projeto](docs/ESCOPO.md)
 - [Contexto detalhado para IAs](docs/CONTEXTO-PARA-IAS.md)

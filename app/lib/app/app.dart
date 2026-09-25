@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
+import '../features/guidance/presentation/pages/guidance_page.dart';
 import '../features/home/presentation/pages/home_page.dart';
 import '../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../features/support_network/presentation/pages/support_network_page.dart';
@@ -21,6 +22,7 @@ class RedeApoioApp extends StatelessWidget {
         HomePage.routeName: (_) => const HomePage(),
         TrustedContactPage.routeName: (_) => const TrustedContactPage(),
         SupportNetworkPage.routeName: (_) => const SupportNetworkPage(),
+        GuidancePage.routeName: (_) => const GuidancePage(),
       },
     );
   }

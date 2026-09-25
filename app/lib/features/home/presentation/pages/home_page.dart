@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../../../../core/services/emergency_service.dart';
+import '../../../../core/services/location_service.dart';
 import '../../../../core/services/share_location_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/action_card.dart';
-import '../../../../core/widgets/support_map_preview.dart';
+import '../../../../core/widgets/support_network_map.dart';
+import '../../../guidance/presentation/pages/guidance_page.dart';
+import '../../../support_network/data/support_network_service.dart';
+import '../../../support_network/domain/models/support_institution.dart';
+import '../../../support_network/presentation/pages/support_map_page.dart';
 import '../../../support_network/presentation/pages/support_network_page.dart';
 import '../../../trusted_contact/presentation/pages/trusted_contact_page.dart';
 
@@ -20,6 +26,77 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   String _filter = 'todos';
+
+  // ── Mapa ──────────────────────────────────────────────────────────────────
+  List<SupportInstitution> _instituicoes = [];
+  Position? _posicao;
+  bool _carregandoMapa = true;
+  bool _carregandoLocalizacao = false;
+  bool _mapaOffline = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _carregarMapa());
+  }
+
+  /// Carrega os pinos. Usa a localização só se a permissão já existir:
+  /// o pedido acontece quando a usuária toca em "usar minha localização".
+  Future<void> _carregarMapa() async {
+    final posicao = _posicao ?? await LocationService.obterPosicaoSeJaPermitido();
+    final resultado = await SupportNetworkService.buscarInstituicoes(
+      lat: posicao?.latitude,
+      lng: posicao?.longitude,
+    );
+    if (!mounted) return;
+    setState(() {
+      _posicao = posicao;
+      _instituicoes = resultado.instituicoes;
+      _mapaOffline = resultado.offline;
+      _carregandoMapa = false;
+    });
+  }
+
+  Future<void> _usarMinhaLocalizacao() async {
+    setState(() => _carregandoLocalizacao = true);
+    final erro = await LocationService.verificarPermissoes();
+    final posicao = erro == null ? await LocationService.obterPosicaoAtual() : null;
+    if (!mounted) return;
+    setState(() => _carregandoLocalizacao = false);
+
+    if (posicao == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(erro ?? 'Não foi possível obter sua localização agora.'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      return;
+    }
+    _posicao = posicao;
+    await _carregarMapa();
+  }
+
+  List<SupportInstitution> get _instituicoesFiltradas {
+    final categorias = SupportNetworkPage.categoriasFiltro
+        .firstWhere((c) => c.id == _filter)
+        .categorias;
+    if (categorias.isEmpty) return _instituicoes;
+    return _instituicoes.where((i) => categorias.contains(i.category)).toList();
+  }
+
+  void _ampliarMapa() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SupportMapPage(
+          instituicoes: _instituicoesFiltradas,
+          posicaoUsuaria: _posicao,
+        ),
+      ),
+    );
+  }
 
   /// Abre a Rede de Apoio já filtrada pelo chip escolhido na tela inicial.
   void _abrirRedeDeApoio() {
@@ -209,10 +286,7 @@ class _HomePageState extends State<HomePage> {
                           child: _FilterChip(
                             label: cat.label,
                             selected: _filter == cat.id,
-                            onSelected: () {
-                              setState(() => _filter = cat.id);
-                              _abrirRedeDeApoio();
-                            },
+                            onSelected: () => setState(() => _filter = cat.id),
                           ),
                         ),
                       )
@@ -222,8 +296,49 @@ class _HomePageState extends State<HomePage> {
 
               const SizedBox(height: 16),
 
-              // ── Mapa demonstrativo ────────────────────────────────────
-              SupportMapPreview(onTap: _abrirRedeDeApoio),
+              // ── Mapa da rede de apoio ─────────────────────────────────
+              if (_carregandoMapa)
+                Container(
+                  height: 280,
+                  decoration: BoxDecoration(
+                    color: AppColors.blueSoft,
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  alignment: Alignment.center,
+                  child: const CircularProgressIndicator(strokeWidth: 2.5),
+                )
+              else
+                SupportNetworkMap(
+                  altura: 280,
+                  instituicoes: _instituicoesFiltradas,
+                  posicaoUsuaria: _posicao,
+                  carregandoLocalizacao: _carregandoLocalizacao,
+                  onUsarLocalizacao: _usarMinhaLocalizacao,
+                  onAmpliar: _ampliarMapa,
+                  onSelecionar: (grupo) => SupportMapPage.mostrarGrupo(context, grupo),
+                ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _mapaOffline
+                          ? 'Sem conexão: mostrando locais salvos no aparelho.'
+                          : _posicao != null
+                              ? 'Toque em um pino para ver detalhes.'
+                              : 'Use o botão de localização do mapa para ver o que está perto.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: _mapaOffline ? const Color(0xFFE65100) : AppColors.textSecondary,
+                          ),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: _abrirRedeDeApoio,
+                    icon: const Icon(Icons.list_rounded, size: 18),
+                    label: const Text('Ver lista'),
+                  ),
+                ],
+              ),
 
               const SizedBox(height: 16),
 
@@ -275,7 +390,7 @@ class _HomePageState extends State<HomePage> {
                 icon: Icons.menu_book_rounded,
                 title: 'Orientações e direitos',
                 description: 'Informações sobre proteção e atendimento.',
-                onTap: () => _showPending('Orientações e direitos'),
+                onTap: () => Navigator.pushNamed(context, GuidancePage.routeName),
               ),
             ],
           ),

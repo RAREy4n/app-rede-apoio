@@ -59,7 +59,9 @@ flowchart LR
 4. Sem internet: lista de contingência de Curitiba no próprio app, com as mesmas regras de busca.
 5. Cada instituição traz selo de verificação, fonte oficial e se a coordenada é aproximada (nesse caso, "Como chegar" usa o endereço).
 
-**Falta no front:** mapa com pinos (sugestão: `flutter_map` + OpenStreetMap, respeitando a política de uso de tiles, ou Google Maps SDK). Os dados (lat/lng) já vêm prontos.
+**Mapa:** a Home mostra um mapa OpenStreetMap (`flutter_map`, widget `SupportNetworkMap`) com pinos por categoria, filtros, botão "usar minha localização" (a permissão só é pedida nesse toque) e tela cheia (`SupportMapPage`). Instituições no mesmo endereço viram um pino com contador.
+
+**Tiles em produção:** o servidor público `tile.openstreetmap.org` serve para o piloto e apresentações, mas a política de uso do OSM não permite uso intenso por apps. Antes de divulgar, troque por um provedor de tiles (há opções com plano gratuito) passando a URL no build: `--dart-define=MAP_TILE_URL=https://.../{z}/{x}/{y}.png`. A atribuição "OpenStreetMap contributors" deve continuar visível.
 
 ### 3.2 Botão de emergência
 

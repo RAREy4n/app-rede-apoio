@@ -61,6 +61,30 @@ class LocationService {
     }
   }
 
+  /// Obtém a posição SOMENTE se a permissão já foi concedida antes.
+  ///
+  /// Não abre o pedido de permissão: use em telas que carregam sozinhas
+  /// (ex.: mapa da Home). O pedido fica para quando a usuária tocar em
+  /// "usar minha localização" ([obterPosicaoAtual]).
+  static Future<Position?> obterPosicaoSeJaPermitido() async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) return null;
+      final permissao = await Geolocator.checkPermission();
+      if (permissao != LocationPermission.always &&
+          permissao != LocationPermission.whileInUse) {
+        return null;
+      }
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 10),
+        ),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Gera a URL do Google Maps com as coordenadas fornecidas.
   static String gerarLinkMaps(double latitude, double longitude) {
     return 'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude';

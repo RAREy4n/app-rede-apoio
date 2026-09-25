@@ -15,6 +15,8 @@ dependencies:
   supabase_flutter: ^2.17.2
   flutter_secure_storage: ^9.2.2 # pessoa de confiança criptografada no aparelho
   shared_preferences: ^2.3.2 # cache offline do conteúdo (canais e guias)
+  flutter_map: ^8.1.1 # mapa OpenStreetMap (BSD-3, sem chave de API)
+  latlong2: ^0.9.1 # coordenadas para o flutter_map
 
 dev_dependencies:
   flutter_test:

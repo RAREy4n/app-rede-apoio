@@ -9,6 +9,7 @@ Legenda: `[ ]` pendente, `[x]` concluído.
 - [x] Testes do contrato (`backend/supabase/tests/api_test.sql`).
 - [ ] Aplicar as migrations novas no Supabase de produção.
 - [ ] Rodar `flutter pub get`, `flutter analyze` e `flutter test` com a nova camada de dados.
+- [x] Tela de direitos e orientações (`GuidancePage` + `GuideDetailPage`), com aviso de revisão e cache offline.
 - [ ] Revisão dos guias de direitos por profissional da rede (`guides.reviewed_at`).
 
 ## Base do projeto
@@ -67,6 +68,8 @@ Legenda: `[ ]` pendente, `[x]` concluído.
 - [x] Definir fonte dos dados (Supabase PostgreSQL + PostGIS).
 - [x] Criar modelo de instituição (`SupportInstitution`).
 - [x] Implementar prévia visual de mapa com filtros demonstrativos.
+- [x] Mapa OpenStreetMap real na Home, com filtros, localização sob demanda e tela cheia.
+- [ ] Trocar o servidor de tiles do OSM por um provedor adequado antes de divulgar (`MAP_TILE_URL`).
 - [x] Integrar consulta de dados de instituições verificadas com cálculo de distância (Supabase RPC `nearby_institutions`).
 - [x] Implementar tela completa da Rede de Apoio com busca textual, categorias, ação de ligar e rotas no mapa (`SupportNetworkPage`).
 - [x] Implementar filtros por serviço e categoria.

@@ -183,12 +183,7 @@ class _SupportNetworkPageState extends State<SupportNetworkPage> {
   }
 
   void _abrirDetalhes(SupportInstitution inst) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _DetalhesInstituicaoSheet(instituicao: inst),
-    );
+    InstitutionDetailsSheet.show(context, inst);
   }
 
   @override
@@ -738,10 +733,20 @@ class _InstituicaoCard extends StatelessWidget {
 
 // ── BottomSheet: Detalhes da Instituição ─────────────────────────────────────
 
-class _DetalhesInstituicaoSheet extends StatelessWidget {
-  const _DetalhesInstituicaoSheet({required this.instituicao});
+/// Detalhes de uma instituição em bottom sheet. Usado na lista e no mapa.
+class InstitutionDetailsSheet extends StatelessWidget {
+  const InstitutionDetailsSheet({required this.instituicao, super.key});
 
   final SupportInstitution instituicao;
+
+  static Future<void> show(BuildContext context, SupportInstitution instituicao) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => InstitutionDetailsSheet(instituicao: instituicao),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

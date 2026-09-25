@@ -200,6 +200,26 @@ void main() {
     });
   });
 
+  group('Raio de busca (offline)', () {
+    test('com posição, mostra só o que está dentro do raio', () async {
+      // Ao lado da Casa da Mulher Brasileira (Cabral).
+      final r = await SupportNetworkService.buscarInstituicoes(
+        lat: -25.4047, lng: -49.2502, raioKm: 1);
+      expect(r.offline, isTrue);
+      expect(r.foraDoRaio, isFalse);
+      expect(r.instituicoes.map((i) => i.externalKey),
+          unorderedEquals(['cwb-casa-mulher-brasileira', 'cwb-delegacia-mulher']));
+    });
+
+    test('sem nada no raio, mostra os mais próximos e avisa', () async {
+      // São Paulo: nada de Curitiba a menos de 20 km.
+      final r = await SupportNetworkService.buscarInstituicoes(
+        lat: -23.55, lng: -46.63, raioKm: 20);
+      expect(r.foraDoRaio, isTrue);
+      expect(r.instituicoes, isNotEmpty);
+    });
+  });
+
   group('SupportNetworkPage Widget', () {
     testWidgets('renderiza títulos, busca e categorias', (tester) async {
       await tester.pumpWidget(

@@ -1,24 +1,66 @@
-# Aplicativo Rede de Apoio
+# App Rede de Apoio (Flutter)
 
-Aplicativo mobile em Flutter/Dart.
+Aplicativo mobile em Flutter/Dart. Visão geral do projeto e fluxograma: [README principal](../README.md).
 
 ## Estado atual
 
-A estrutura Dart, a primeira navegação e o diretório nativo `android/` estão preparados. O aplicativo foi compilado e executado no emulador Android. O diretório `ios/` será gerado e testado futuramente em um Mac.
+- Android validado em emulador; também roda no Chrome (`flutter run -d chrome`) para testes rápidos.
+- iOS ainda não gerado (requer macOS e Xcode).
+- 31 testes passando (`flutter test`).
 
-## Preparação do ambiente
+## Como está organizado
 
-1. Flutter 3.47.5 e Dart 3.13.4 instalados em `C:\Users\yanlu\develop\flutter`.
-2. Android Studio, Android SDK, NDK e emulador já estão configurados.
-3. Executar em um emulador ou aparelho físico.
-4. Para iOS, configurar um Mac com Xcode quando essa etapa for necessária.
+```text
+lib/
+├── api.dart          # Camada de dados: o ÚNICO import que as telas precisam
+├── main.dart         # Inicializa o Supabase e abre o app
+├── app/              # MaterialApp e rotas
+├── core/
+│   ├── config/       # AppConfig (variáveis de build) e SupabaseConfig
+│   ├── content/      # Canais de emergência, categorias e guias (bootstrap + cache offline)
+│   ├── services/     # GPS, discador, WhatsApp/SMS
+│   ├── theme/        # Cores e tema
+│   ├── utils/        # Normalização de texto (busca sem acento)
+│   └── widgets/      # Mapa (SupportNetworkMap), Markdown simples, cards
+└── features/         # Cada funcionalidade: data/ domain/ presentation/
+    ├── home/             # Tela inicial com mapa
+    ├── onboarding/       # Primeiro uso
+    ├── support_network/  # Rede de apoio: lista, mapa em tela cheia, detalhes
+    ├── guidance/         # Direitos e orientações
+    ├── trusted_contact/  # Pessoa de confiança (salva só no aparelho)
+    └── location_share/   # Localização ao vivo (dados prontos; tela a fazer)
+assets/offline/       # Conteúdo embutido para o primeiro uso sem internet
+test/                 # Testes de modelos, busca offline, camada de dados e telas
+```
 
-Antes de gerar arquivos dentro desta pasta, preserve os arquivos existentes em `lib/`, `test/` e `pubspec.yaml`.
+Contrato de cada classe da camada de dados: [docs/API.md](../docs/API.md).
 
-## Direção de arquitetura
+## Comandos
 
-- `app/`: configuração global e ponto de entrada da interface.
-- `core/`: tema e componentes compartilhados.
-- `features/`: módulos organizados por funcionalidade.
+```powershell
+flutter pub get
+flutter analyze
+flutter test
+flutter run                 # escolhe o aparelho conectado
+flutter run -d chrome       # navegador
+flutter build apk --debug
+```
 
-O MVP começa sem dependências externas para reduzir conflitos. A análise estática e o teste inicial estão passando.
+Variáveis de build (`--dart-define`): `TRACKING_PAGE_URL` (liga a localização ao vivo) e `MAP_TILE_URL` (servidor de mapas). Detalhes no README principal.
+
+## Pacotes e por que estão aqui
+
+| Pacote | Uso | Observação |
+| --- | --- | --- |
+| `supabase_flutter` | Acesso ao backend | Só com a chave pública `anon`, protegida por RLS |
+| `flutter_map` + `latlong2` | Mapa OpenStreetMap | Sem chave de API; exige atribuição "OpenStreetMap contributors" |
+| `geolocator`, `permission_handler` | Localização | Permissão pedida só quando a usuária toca em "usar minha localização" |
+| `url_launcher` | Discador, WhatsApp, SMS, mapas | O envio final é sempre confirmado pela usuária |
+| `flutter_secure_storage` | Pessoa de confiança criptografada | Keystore/Keychain; nada vai ao servidor |
+| `shared_preferences` | Cache do conteúdo (canais e guias) | Só conteúdo público |
+
+## Cuidados conhecidos
+
+- **Botões dentro de `Row`:** o tema dá largura infinita aos botões (`minimumSize: Size.fromHeight(...)`). Dentro de uma `Row`, defina `minimumSize` no `styleFrom` (ex.: `Size(0, 40)`) ou envolva em `Expanded`; senão a tela fica branca com `BoxConstraints forces an infinite width`.
+- **`latlong2` exporta uma classe `Path`** que conflita com a do `dart:ui`: importe com `hide Path` (ou `show LatLng`).
+- **Discador:** não use `canLaunchUrl` para `tel:`; no Android 11+ ele pode responder `false`. Use `EmergencyService.discar()` e mostre o número se falhar.

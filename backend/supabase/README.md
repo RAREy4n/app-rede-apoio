@@ -39,6 +39,9 @@ Cole e rode, **em ordem**, os arquivos de `migrations/` que ainda não foram apl
 
 1. `20260925120000_canais_categorias_conteudo.sql`
 2. `20260925120100_compartilhamento_localizacao.sql`
+3. `20260926120000_rede_curitiba_ippuc.sql` (amplia a rede para ~90 instituições)
+
+Se as duas primeiras já foram aplicadas, rode só a terceira.
 
 ### Limpeza automática da localização
 
@@ -73,7 +76,11 @@ Rotina mensal sugerida:
 
 Para mudar dados em produção, prefira uma migration nova (fica registrado no Git) a editar pelo painel.
 
-## Fontes oficiais usadas no levantamento de Curitiba (24/09/2026)
+## Fontes oficiais usadas no levantamento de Curitiba
+
+**Base principal (25/09/2026):** [IPPUC — GeoCuritiba, Equipamentos Urbanos](https://geocuritiba.ippuc.org.br/server/rest/services/Publico_GeoCuritiba_Equipamentos_Urbanos/MapServer), serviço público de mapas da Prefeitura com endereço, telefone, horário e coordenadas oficiais. Camadas usadas: 34 (CRAS), 38 (CREAS), 105 (Defensoria Pública), 108 (Centro de Referência de Atendimento à Mulher), 129 (Hospitais públicos), 130 (UPAs) e 143 (Polícia Civil). Para atualizar a base, consulte a camada com `/query?where=1%3D1&outFields=*&f=json` e compare com o banco.
+
+**Levantamento inicial (24/09/2026):**
 
 - [Prefeitura — Rede de Atenção às mulheres em situação de violências](https://mulhereigualdade.curitiba.pr.gov.br/conteudo/rede-de-atencao-as-mulheres-em-situacao-de-violencias/12)
 - [Prefeitura — Portal Locais: Casa da Mulher Brasileira](https://locais.curitiba.pr.gov.br/centro-de-referencia-de-atendimento-a-mulher-casa-da-mulher-brasileira/2117)

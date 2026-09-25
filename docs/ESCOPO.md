@@ -1,5 +1,7 @@
 # Escopo do Projeto — Rede de Apoio
 
+> **Situação em 25/09/2026:** Fase 3 (MVP técnico) em andamento. Piloto em Curitiba/PR. O que já funciona está no [README](../README.md) e o que falta em [PENDENCIAS.md](PENDENCIAS.md).
+
 ## 1. Visão geral
 
 O Rede de Apoio é um projeto extensionista para criar uma solução digital de acesso simples à rede de proteção às mulheres em situação de violência.
@@ -169,7 +171,7 @@ Não será prometida a troca livre do nome e ícone do aplicativo em todos os di
 - entrevistas com profissionais e organizações;
 - levantamento da rede de apoio local;
 - análise de riscos;
-- definição do município ou estado-piloto.
+- definição do município ou estado-piloto (**definido: Curitiba/PR**).
 
 ### Fase 2 — UX e protótipo
 

@@ -164,7 +164,7 @@ Todas aceitam `POST {URL}/rest/v1/rpc/<nome>` com JSON no corpo. Erros vêm como
 | `filter_categories` | text[] | null | Ex.: `["delegacia_mulher","delegacia_comum"]` |
 | `filter_city` | text | null | Ex.: `"Curitiba"` |
 | `radius_meters` | int | null | null ou ≤ 0 = sem limite |
-| `max_results` | int | 30 | Máximo 50 |
+| `max_results` | int | 30 | Máximo 200 (o app usa 150) |
 
 Resposta (lista):
 

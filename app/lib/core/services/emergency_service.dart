@@ -57,12 +57,14 @@ class EmergencyService {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
+            style: TextButton.styleFrom(minimumSize: const Size(64, 44)),
             child: const Text('Cancelar'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFFC62828),
+              minimumSize: const Size(64, 44),
             ),
             child: const Text('Ligar agora'),
           ),
@@ -101,10 +103,12 @@ class EmergencyService {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
+            style: TextButton.styleFrom(minimumSize: const Size(64, 44)),
             child: const Text('Cancelar'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
             child: const Text('Ligar agora'),
           ),
         ],

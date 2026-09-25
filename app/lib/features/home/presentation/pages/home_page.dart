@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../../../../core/config/app_config.dart';
 import '../../../../core/services/emergency_service.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/services/share_location_service.dart';
@@ -33,6 +34,7 @@ class _HomePageState extends State<HomePage> {
   bool _carregandoMapa = true;
   bool _carregandoLocalizacao = false;
   bool _mapaOffline = false;
+  bool _foraDoRaio = false;
 
   @override
   void initState() {
@@ -47,12 +49,14 @@ class _HomePageState extends State<HomePage> {
     final resultado = await SupportNetworkService.buscarInstituicoes(
       lat: posicao?.latitude,
       lng: posicao?.longitude,
+      raioKm: AppConfig.raioBuscaKm,
     );
     if (!mounted) return;
     setState(() {
       _posicao = posicao;
       _instituicoes = resultado.instituicoes;
       _mapaOffline = resultado.offline;
+      _foraDoRaio = resultado.foraDoRaio;
       _carregandoMapa = false;
     });
   }
@@ -279,7 +283,6 @@ class _HomePageState extends State<HomePage> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: SupportNetworkPage.categoriasFiltro
-                      .where((cat) => cat.id != 'saude')
                       .map(
                         (cat) => Padding(
                           padding: const EdgeInsets.only(right: 8),
@@ -324,8 +327,10 @@ class _HomePageState extends State<HomePage> {
                     child: Text(
                       _mapaOffline
                           ? 'Sem conexão: mostrando locais salvos no aparelho.'
-                          : _posicao != null
-                              ? 'Toque em um pino para ver detalhes.'
+                          : _foraDoRaio
+                              ? 'Nada a até ${AppConfig.raioBuscaKm.round()} km: mostrando os mais próximos.'
+                              : _posicao != null
+                              ? 'Locais a até ${AppConfig.raioBuscaKm.round()} km. Toque em um pino.'
                               : 'Use o botão de localização do mapa para ver o que está perto.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: _mapaOffline ? const Color(0xFFE65100) : AppColors.textSecondary,
@@ -334,6 +339,8 @@ class _HomePageState extends State<HomePage> {
                   ),
                   TextButton.icon(
                     onPressed: _abrirRedeDeApoio,
+                    // O tema deixa botões com largura infinita; dentro de Row isso quebra.
+                    style: TextButton.styleFrom(minimumSize: const Size(0, 40)),
                     icon: const Icon(Icons.list_rounded, size: 18),
                     label: const Text('Ver lista'),
                   ),

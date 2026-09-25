@@ -13,7 +13,7 @@ O produto possui duas interfaces principais:
 1. Landing page pública feita em React com JavaScript.
 2. Aplicativo mobile multiplataforma feito em Flutter com Dart.
 
-O backend será responsável pelos dados da rede de apoio, contatos autorizados e compartilhamento temporário de localização.
+O backend é o Supabase (PostgreSQL + PostGIS, RPCs em SQL), responsável pelos dados da rede de apoio, canais de emergência, guias de direitos e compartilhamento temporário de localização. A pessoa de confiança fica só no aparelho.
 
 ## Proposta de valor
 
@@ -21,11 +21,12 @@ Facilitar o acesso a serviços e contatos de apoio sem obrigar a usuária a nave
 
 ## Estado atual do repositório
 
-- O aplicativo Flutter em `app/` funciona no Android e possui onboarding e tela inicial demonstrativos.
-- O Android foi validado no emulador `medium_phone`; Flutter, Dart, SDK e licenças estão configurados localmente.
-- A landing page React em `landing-page/` ainda não foi inicializada.
-- O backend em `backend/` ainda não foi implementado.
-- Não há integração real com localização, WhatsApp, SOS, boletim de ocorrência, APIs governamentais ou armazenamento de dados sensíveis.
+- App Flutter em `app/` com onboarding, início com mapa OpenStreetMap, rede de apoio (busca, categorias, distância, detalhes) e direitos e orientações.
+- Camada de dados em `app/lib/api.dart`; contrato em `docs/API.md`; arquitetura em `docs/ARQUITETURA.md`.
+- Backend Supabase em `backend/supabase/` com migrations e testes da API.
+- Piloto: Curitiba/PR, com base de instituições curada a partir de fontes oficiais.
+- Localização: envio único pelo WhatsApp funciona; compartilhamento ao vivo tem backend pronto e falta a tela e a página `/acompanhar`.
+- Não há integração com polícia, BO, APIs governamentais nem armazenamento de provas.
 
 ## Como validar o estado atual
 
@@ -34,12 +35,13 @@ Dentro de `app/`, execute:
 ```powershell
 flutter analyze
 flutter test
-flutter run -d emulator-5554
+flutter run            # com emulador ou celular conectado
+flutter run -d chrome  # teste rápido no navegador
 ```
 
 ## Próximo recorte de implementação
 
-Implementar apenas a experiência local de cadastro de uma pessoa de confiança: nome, telefone, explicação de consentimento, revisão e opção de pular. Não incluir GPS, WhatsApp, backend nem envio real de alerta nessa etapa.
+Salvar a pessoa de confiança (`TrustedContactRepository`), criar a tela de localização ao vivo com confirmação e botão de parar, a página web `/acompanhar` e a saída rápida. Ver `AGENTS.md`, seção "Próxima entrega recomendada".
 
 ## Funcionalidades prioritárias
 

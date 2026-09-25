@@ -96,8 +96,8 @@
         "city": "Curitiba",
         "state": "PR"
     },
-    "generated_at": "2026-09-25T01:49:49.743817+00:00",
-    "content_version": "20260925014711",
+    "generated_at": "2026-09-25T02:48:29.850717+00:00",
+    "content_version": "20260925024820",
     "emergency_channels": [
         {
             "id": "pm-190",
@@ -189,11 +189,11 @@
         },
         {
             "id": "delegacia_comum",
-            "label": "Delegacia Especializada",
+            "label": "Delegacia de Polícia Civil",
             "icon_key": "police",
             "is_public": true,
             "sort_order": 20,
-            "description": "Outras delegacias especializadas (ex.: crianças, crimes on-line)",
+            "description": "Distritos policiais e delegacias especializadas",
             "filter_group": "delegacias",
             "filter_group_label": "Delegacias"
         },

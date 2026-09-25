@@ -86,6 +86,13 @@ class SupportInstitution {
     'protecao_crianca_adolescente': 'Proteção à criança e ao adolescente',
     'crimes_ciberneticos': 'Crimes cibernéticos',
     'importunacao_sexual_online': 'Importunação sexual on-line',
+    'cadastro_unico': 'CadÚnico',
+    'beneficios_sociais': 'Benefícios sociais',
+    'acompanhamento_familiar': 'Acompanhamento familiar',
+    'encaminhamento_rede': 'Encaminhamento para a rede',
+    'acompanhamento_psicossocial': 'Acompanhamento psicossocial',
+    'atendimento_24h': 'Atendimento 24 horas',
+    'flagrante': 'Registro de flagrante',
   };
 
   static String labelServico(String servico) {
@@ -104,7 +111,7 @@ class SupportInstitution {
         return 'Delegacia da Mulher';
       case 'delegacia':
       case 'delegacia_comum':
-        return 'Delegacia Especializada';
+        return 'Delegacia de Polícia Civil';
       case 'creas':
         return 'CREAS (Atendimento Especializado)';
       case 'cras':
@@ -115,8 +122,9 @@ class SupportInstitution {
       case 'centro_referencia':
         return 'Centro de Referência da Mulher';
       case 'hospital':
+        return 'Hospital';
       case 'upa':
-        return 'Saúde / Emergência Médica';
+        return 'UPA — Pronto Atendimento 24h';
       case 'ministerio_publico':
         return 'Ministério Público';
       case 'forum':

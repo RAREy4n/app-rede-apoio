@@ -8,8 +8,11 @@ Legenda: `[ ]` pendente, `[x]` concluído.
 - [x] Contrato da API para o front (`docs/API.md`) e camada de dados (`app/lib/api.dart`).
 - [x] Testes do contrato (`backend/supabase/tests/api_test.sql`).
 - [ ] Aplicar as migrations novas no Supabase de produção.
-- [ ] Rodar `flutter pub get`, `flutter analyze` e `flutter test` com a nova camada de dados.
+- [x] Rodar `flutter pub get`, `flutter analyze` e `flutter test` com a nova camada de dados (31 testes passando).
 - [x] Tela de direitos e orientações (`GuidancePage` + `GuideDetailPage`), com aviso de revisão e cache offline.
+- [ ] Confirmar no Chrome a correção da tela branca (botões em `Row` com largura infinita do tema).
+- [ ] Testar o app completo no emulador ou celular Android após as últimas mudanças.
+- [x] README com fluxograma do estado atual.
 - [ ] Revisão dos guias de direitos por profissional da rede (`guides.reviewed_at`).
 
 ## Base do projeto
@@ -28,7 +31,7 @@ Legenda: `[ ]` pendente, `[x]` concluído.
 - [x] Aceitar as licenças do Android SDK.
 - [x] Criar emulador Android.
 - [x] Gerar e instalar APK de teste no emulador.
-- [ ] Inicializar controle de versão Git, caso desejado.
+- [x] Inicializar controle de versão Git.
 
 ## Configuração inicial
 
@@ -38,6 +41,7 @@ Legenda: `[ ]` pendente, `[x]` concluído.
 - [x] Camada de dados para persistir o contato com criptografia (`TrustedContactRepository`).
 - [ ] Tela de cadastro usar `TrustedContactRepository` (front).
 - [ ] Criar envio de mensagem de teste.
+- [ ] "Enviar localização" da Home usar o contato salvo.
 - [x] Permitir pular configuração e acessar a tela inicial.
 
 ## Canais oficiais
@@ -79,9 +83,12 @@ Legenda: `[ ]` pendente, `[x]` concluído.
 - [x] Lista offline de contingência com dados de Curitiba verificados.
 - [x] Fila de revisão humana (`institution_review_queue`) e view `institutions_stale`.
 - [ ] Confirmar por telefone os contatos da base de Curitiba e registrar `verified_by`.
-- [ ] Conferir no mapa as coordenadas marcadas como `aproximada`.
-- [ ] Resolver divergência de endereço do Hospital do Trabalhador.
-- [ ] Importar CRAS e CREAS de Curitiba (FAS) para a fila de revisão.
+- [x] Coordenadas oficiais do IPPUC para 87 registros; restam 2 aproximadas (Evangélico Mackenzie e Pequeno Príncipe).
+- [ ] Conferir no mapa as 2 coordenadas ainda marcadas como `aproximada`.
+- [x] Resolver divergência de endereço do Hospital do Trabalhador (confirmado pelo IPPUC).
+- [x] Importar CRAS (39), CREAS (10), UPAs (9), delegacias (14), Defensoria (9) e CRAM CIC do IPPUC (`20260926120000_rede_curitiba_ippuc.sql`).
+- [ ] Aplicar a migration `20260926120000_rede_curitiba_ippuc.sql` no Supabase de produção.
+- [ ] Confirmar os telefones da Delegacia da Mulher (IPPUC e Prefeitura divergem).
 - [ ] Criar coleta programada (mensal) que compara fontes oficiais e abre pendências.
 - [ ] Criar painel simples para aprovar/rejeitar pendências da fila.
 

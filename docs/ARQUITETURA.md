@@ -1,6 +1,6 @@
 # Arquitetura — Rede de Apoio
 
-Última atualização: 25/09/2026. Piloto: **Curitiba/PR**.
+Última atualização: 25/09/2026. Piloto: **Curitiba/PR**. Fluxograma das telas no [README](../README.md#fluxo-do-aplicativo-estado-atual).
 
 ## 1. Visão geral
 
@@ -76,6 +76,8 @@ flowchart LR
 2. `TrustedContact.fromInput()` valida e normaliza o telefone.
 3. `TrustedContactRepository.salvar()` guarda criptografado no aparelho.
 
+**Situação:** a tela de cadastro existe, mas ainda não chama `salvar()` (a fazer no front).
+
 ### 3.4 Avisar a pessoa de confiança com a localização
 
 Duas opções na tela, sempre com **confirmação** antes:
@@ -116,7 +118,9 @@ sequenceDiagram
 
 1. Os guias vêm em `AppContentRepository.carregar()` → `guides` (Markdown), com cache offline.
 2. Guias atuais: emergência, plano de segurança, boletim de ocorrência, medida protetiva, Lei Maria da Penha, apoio financeiro, segurança digital.
-3. `reviewedAt == null` significa **aguardando revisão por profissional** da rede. Todos os guias estão nesse estado. A tela deve deixar isso claro até a revisão.
+3. `reviewedAt == null` significa **aguardando revisão por profissional** da rede. Todos os guias estão nesse estado, e a tela avisa isso.
+
+**Situação:** telas prontas (`GuidancePage` com filtro por tema e `GuideDetailPage` com leitura em Markdown, fonte oficial e atalhos 190/180).
 
 ## 4. O que mais podemos colocar (sugestões priorizadas)
 
@@ -126,7 +130,7 @@ sequenceDiagram
 | --- | --- | --- |
 | **Saída rápida** (botão que troca na hora para uma tela neutra ou fecha o app) | Proteção se o agressor se aproximar | Nenhum |
 | **Aviso de limites do app** no primeiro uso | Deixar claro que não substitui 190/180 | Nenhum |
-| **Mapa com pinos** da rede de apoio | Pedido principal do front | Pronto |
+| ~~Mapa com pinos~~ da rede de apoio | Feito em 25/09/2026 | Pronto |
 | **Plano de segurança interativo** (checklist salvo só no aparelho) | Ajuda prática para quem planeja sair | Nenhum (guia já existe) |
 | **Página /acompanhar** | Necessária para o compartilhamento ao vivo | Pronto |
 
@@ -177,8 +181,8 @@ app-rede-apoio/
 │   │   └── features/
 │   │       ├── support_network/          # Rede de apoio: data/ domain/ presentation/
 │   │       ├── trusted_contact/          # Pessoa de confiança: data/ domain/ presentation/
-│   │       ├── location_share/           # Localização ao vivo: data/ domain/ (presentation: front)
-│   │       ├── guidance/                 # Direitos e orientações: presentation/ (front)
+│   │       ├── location_share/           # Localização ao vivo: data/ domain/ (presentation: a fazer)
+│   │       ├── guidance/                 # Direitos e orientações: presentation/ (pronto)
 │   │       ├── home/                     # Tela inicial: presentation/
 │   │       └── onboarding/               # Primeiro uso: presentation/
 │   └── test/

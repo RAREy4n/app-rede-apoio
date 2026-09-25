@@ -9,9 +9,17 @@ import '../domain/models/support_institution.dart';
 
 /// Resultado de uma busca na rede de apoio.
 class ResultadoBusca {
-  const ResultadoBusca({required this.instituicoes, required this.offline});
+  const ResultadoBusca({
+    required this.instituicoes,
+    required this.offline,
+    this.foraDoRaio = false,
+  });
 
   final List<SupportInstitution> instituicoes;
+
+  /// `true` quando não havia nada dentro do raio pedido e a lista mostra
+  /// os locais mais próximos, mesmo mais distantes.
+  final bool foraDoRaio;
 
   /// `true` quando os dados vieram da lista local de contingência
   /// (sem internet, Supabase indisponível ou erro na consulta).
@@ -30,19 +38,42 @@ class SupportNetworkService {
   /// não filtra por cidade para que a expansão não exija mudança no app.
   static const cidadePiloto = 'Curitiba';
 
-  static const _maxResultados = 30;
+  /// O mapa mostra todos os locais do raio (a base tem ~90 em Curitiba).
+  static const _maxResultados = 150;
 
   /// Busca instituições por texto, categorias e proximidade.
   ///
   /// - [texto]: nome, bairro, serviço ou público (sem diferenciar acentos).
   /// - [categorias]: lista de categorias do banco; vazia = todas.
   /// - [lat]/[lng]: quando informados, ordena por distância.
+  /// - [raioKm]: com posição, limita aos locais até essa distância. Se não
+  ///   houver nenhum, repete sem limite e marca [ResultadoBusca.foraDoRaio].
   static Future<ResultadoBusca> buscarInstituicoes({
     String? texto,
     List<String> categorias = const [],
     double? lat,
     double? lng,
+    double? raioKm,
   }) async {
+    final comRaio = raioKm != null && lat != null && lng != null;
+    final resultado = await _buscar(texto, categorias, lat, lng, comRaio ? raioKm : null);
+    if (!comRaio || resultado.instituicoes.isNotEmpty) return resultado;
+
+    final semLimite = await _buscar(texto, categorias, lat, lng, null);
+    return ResultadoBusca(
+      instituicoes: semLimite.instituicoes,
+      offline: semLimite.offline,
+      foraDoRaio: semLimite.instituicoes.isNotEmpty,
+    );
+  }
+
+  static Future<ResultadoBusca> _buscar(
+    String? texto,
+    List<String> categorias,
+    double? lat,
+    double? lng,
+    double? raioKm,
+  ) async {
     final client = SupabaseConfig.client;
     final termo = texto?.trim() ?? '';
 
@@ -56,6 +87,7 @@ class SupportNetworkService {
                 'lat': lat,
                 'lng': lng,
                 'filter_categories': categorias.isEmpty ? null : categorias,
+                'radius_meters': raioKm == null ? null : (raioKm * 1000).round(),
                 'max_results': _maxResultados,
               },
             )
@@ -81,7 +113,7 @@ class SupportNetworkService {
         categorias: categorias,
         lat: lat,
         lng: lng,
-      ),
+      ).where((i) => raioKm == null || i.distanceKm == null || i.distanceKm! <= raioKm).toList(),
       offline: true,
     );
   }
@@ -286,9 +318,8 @@ class SupportNetworkService {
         zipCode: '80060-150',
         phone: '(41) 3360-1800',
         openingHours: h24,
-        latitude: -25.4246,
-        longitude: -49.2612,
-        locationPrecision: 'aproximada',
+        latitude: -25.42422697,
+        longitude: -49.26215085,
         services: const ['atendimento_violencia_sexual', 'urgencia'],
         targetAudience: 'Mulheres a partir de 12 anos, incluindo mulheres trans e travestis',
         verifiedAt: verificadoEm,

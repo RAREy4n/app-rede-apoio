@@ -67,23 +67,35 @@ Finalize a criação e inicie o emulador pelo botão de reprodução. Na primeir
 
 ## 5. Executar o projeto
 
-No PowerShell:
+**1. Ligue o emulador e espere o Android abrir por completo** (30 s a 1 min). O jeito mais confiável, porque mostra erros:
+
+```powershell
+%LOCALAPPDATA%\Android\Sdk\emulator\emulator.exe -list-avds
+%LOCALAPPDATA%\Android\Sdk\emulator\emulator.exe -avd medium_phone
+```
+
+Deixe esse terminal aberto. Também dá para ligar pelo Android Studio em **Device Manager → ▶**. O comando `flutter emulators --launch medium_phone` funciona, mas não mostra erro se o emulador falhar.
+
+**2. Em outro terminal, rode o app:**
 
 ```powershell
 cd C:\projetos\app-rede-apoio\app
 flutter pub get
 flutter devices
-flutter run -d emulator-5554
+flutter run
 ```
 
-O identificador pode variar. Use o valor exibido por `flutter devices` no lugar de `emulator-5554` quando necessário.
+Só rode `flutter run` quando `flutter devices` listar o Android (ex.: `emulator-5554`). Com mais de um aparelho, use `flutter run -d <id>`.
 
-Alternativamente, inicie o emulador por terminal:
+**Teste rápido no navegador:** `flutter run -d chrome`. Mapa, lista e guias funcionam; GPS, discador e WhatsApp se comportam diferente do celular.
+
+**Guardar o log de uma execução** (para investigar erros):
 
 ```powershell
-flutter emulators
-flutter emulators --launch medium_phone
+flutter run -d chrome > run_log.txt 2>&1
 ```
+
+Feche qualquer outro `flutter run` antes; senão o arquivo fica "em uso por outro processo".
 
 ## 6. Validar antes de alterar ou enviar código
 
@@ -102,7 +114,11 @@ O APK resultante fica em `app/build/app/outputs/flutter-apk/`. É um artefato lo
 | Sintoma | Verificação ou ação |
 | --- | --- |
 | `flutter` não é reconhecido | Corrigir o `PATH` com a pasta `bin` do Flutter e abrir um novo terminal. |
-| Nenhum emulador aparece | Abra o Virtual Device Manager, inicie o dispositivo e rode `flutter devices` novamente. |
+| Nenhum emulador aparece | Ligue pelo `emulator.exe -avd` (acima) para ver o erro, espere o Android abrir e rode `flutter devices` de novo. |
+| `No supported devices found with name or id matching 'emulator-5554'` | O emulador não está ligado ou tem outro id. Rode `flutter devices` e use o id listado. |
+| Erro de hypervisor/WHPX/aceleração | Ative "Plataforma do Hipervisor do Windows" em Recursos do Windows e reinicie. |
+| Tela branca com `Unexpected null value` repetido | Veja o **primeiro** erro no log (`run_log.txt`). Um caso conhecido: botão dentro de `Row` sem `minimumSize` (ver `app/README.md`). |
+| `run_log.txt ... being used by another process` | Outro `flutter run` ainda está aberto: aperte `q` nele. |
 | Erro de licenças | Execute `flutter doctor --android-licenses`. |
 | Falha na instalação do APK | Reinicie o emulador, confirme espaço disponível e rode `flutter run` novamente. |
 | Android toolchain com erro | Abra SDK Manager, instale os componentes solicitados e consulte `flutter doctor -v`. |

@@ -45,3 +45,6 @@ backend/legacy-node/dist/
 # Supabase CLI
 backend/supabase/.temp/
 backend/supabase/.branches/
+
+# Logs locais de execução
+run_log*.txt

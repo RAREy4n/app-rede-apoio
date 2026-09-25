@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../../../../core/config/app_config.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/support_network_service.dart';
@@ -73,6 +74,7 @@ class _SupportNetworkPageState extends State<SupportNetworkPage> {
   List<SupportInstitution> _instituicoes = [];
   bool _carregando = true;
   bool _offline = false;
+  bool _foraDoRaio = false;
   bool _buscandoLocalizacao = false;
   String? _avisoLocalizacao;
   Position? _posicaoAtual;
@@ -133,12 +135,15 @@ class _SupportNetworkPageState extends State<SupportNetworkPage> {
       categorias: _categoriasSelecionadas,
       lat: _posicaoAtual?.latitude,
       lng: _posicaoAtual?.longitude,
+      // Com texto digitado, procura em toda a base (ela pode buscar um local distante).
+      raioKm: _buscaController.text.trim().isEmpty ? AppConfig.raioBuscaKm : null,
     );
 
     if (!mounted || idBusca != _buscaAtual) return;
     setState(() {
       _instituicoes = resultado.instituicoes;
       _offline = resultado.offline;
+      _foraDoRaio = resultado.foraDoRaio;
       _carregando = false;
     });
   }
@@ -329,12 +334,16 @@ class _SupportNetworkPageState extends State<SupportNetworkPage> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      'Ordenado pelos locais mais próximos de você',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: const Color(0xFF2E7D32),
-                            fontWeight: FontWeight.w600,
-                          ),
+                    Flexible(
+                      child: Text(
+                        _foraDoRaio
+                            ? 'Nada a até ${AppConfig.raioBuscaKm.round()} km: mostrando os mais próximos'
+                            : 'Locais a até ${AppConfig.raioBuscaKm.round()} km, do mais perto ao mais longe',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFF2E7D32),
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
                     ),
                   ],
                 ),
@@ -428,6 +437,7 @@ class _AvisoBanner extends StatelessWidget {
             TextButton(
               onPressed: onAcao,
               style: TextButton.styleFrom(
+                minimumSize: const Size(0, 36), // tema usa largura infinita
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 visualDensity: VisualDensity.compact,
               ),

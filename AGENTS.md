@@ -16,13 +16,15 @@ Leia também:
 - [docs/ESCOPO.md](docs/ESCOPO.md): recorte acadêmico e MVP.
 - [docs/PENDENCIAS.md](docs/PENDENCIAS.md): trabalho pendente e prioridades.
 
-## Estado atual
+## Estado atual (25/09/2026)
 
 - Backend 100% Supabase em `backend/supabase/migrations/` (a API Node em `backend/legacy-node/` está arquivada).
-- Camada de dados do app pronta em `app/lib/api.dart`: rede de apoio, canais de emergência, guias, pessoa de confiança (só no aparelho) e localização ao vivo.
-- Telas existentes: onboarding, início, cadastro de pessoa de confiança (ainda sem salvar) e rede de apoio.
-- Piloto: Curitiba/PR.
-- Não há integração com polícia, BO ou órgãos públicos.
+- Camada de dados pronta em `app/lib/api.dart`: rede de apoio, canais de emergência, guias, pessoa de confiança (só no aparelho) e localização ao vivo.
+- Telas funcionando: onboarding, início com mapa OpenStreetMap, rede de apoio (lista, mapa em tela cheia, detalhes) e direitos e orientações.
+- Parciais: cadastro da pessoa de confiança (não salva ainda) e "Enviar localização" (não usa o contato salvo).
+- A fazer: tela de localização ao vivo, página web `/acompanhar`, saída rápida.
+- Piloto: Curitiba/PR. Não há integração com polícia, BO ou órgãos públicos.
+- Fluxograma atualizado no [README.md](README.md).
 
 ## Regras inegociáveis de segurança
 
@@ -43,8 +45,13 @@ Leia também:
 - Todo pacote novo exige justificativa de privacidade, manutenção e licença.
 - Não versionar APKs, caches, arquivos locais do Android, chaves, tokens ou arquivos `.env`.
 - Antes de concluir uma mudança Flutter, rode `flutter analyze` e `flutter test` dentro de `app/`.
+- Botões dentro de `Row` precisam de `minimumSize` explícito (o tema usa largura infinita) ou de `Expanded`. Veja "Cuidados conhecidos" em `app/README.md`.
+- Ao mudar telas ou fluxos, atualize o fluxograma do `README.md`.
 - Atualize `docs/PENDENCIAS.md` quando uma etapa for concluída ou o escopo mudar.
 
 ## Próxima entrega recomendada
 
-Telas do front consumindo `lib/api.dart` (ver docs/ARQUITETURA.md, seção 4): mapa da rede de apoio, botão de emergência com canais do bootstrap, salvar a pessoa de confiança, tela "Avisar pessoa de confiança" com confirmação e botão de parar, tela de direitos e saída rápida. Também criar a página web `/acompanhar`.
+1. Ligar a tela de cadastro da pessoa de confiança ao `TrustedContactRepository` e usar o contato salvo em "Enviar localização".
+2. Tela "Avisar pessoa de confiança" com confirmação, escolha de 15/30/60 min e botão "Parar" (usa `LocationShareController`).
+3. Página web `/acompanhar` (contrato em `docs/API.md`).
+4. Saída rápida e aviso de limites do app no primeiro uso.

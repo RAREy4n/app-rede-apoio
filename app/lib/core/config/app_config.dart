@@ -19,6 +19,10 @@ class AppConfig {
 
   static bool get compartilhamentoAoVivoDisponivel => trackingPageUrl.isNotEmpty;
 
+  /// Raio máximo da busca "perto de você" (km). Se não houver nada dentro
+  /// dele, o app mostra os locais mais próximos e avisa.
+  static const raioBuscaKm = 20.0;
+
   /// Intervalo entre envios de posição durante o compartilhamento ao vivo.
   static const intervaloEnvioLocalizacao = Duration(seconds: 15);
 

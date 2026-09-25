@@ -16,7 +16,8 @@ backend/
 │   │   ├── 20260924120000_busca_curadoria.sql
 │   │   ├── 20260924120100_base_curitiba.sql
 │   │   ├── 20260925120000_canais_categorias_conteudo.sql
-│   │   └── 20260925120100_compartilhamento_localizacao.sql
+│   │   ├── 20260925120100_compartilhamento_localizacao.sql
+│   │   └── 20260926120000_rede_curitiba_ippuc.sql
 │   ├── tests/
 │   │   └── api_test.sql       # Testes do contrato da API (roda em transação e desfaz)
 │   └── README.md              # Como aplicar, testar e fazer curadoria

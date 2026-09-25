@@ -70,8 +70,8 @@ Finalize a criação e inicie o emulador pelo botão de reprodução. Na primeir
 **1. Ligue o emulador e espere o Android abrir por completo** (30 s a 1 min). O jeito mais confiável, porque mostra erros:
 
 ```powershell
-%LOCALAPPDATA%\Android\Sdk\emulator\emulator.exe -list-avds
-%LOCALAPPDATA%\Android\Sdk\emulator\emulator.exe -avd medium_phone
+& "$env:LOCALAPPDATA\Android\Sdk\emulator\emulator.exe" -list-avds
+& "$env:LOCALAPPDATA\Android\Sdk\emulator\emulator.exe" -avd medium_phone
 ```
 
 Deixe esse terminal aberto. Também dá para ligar pelo Android Studio em **Device Manager → ▶**. O comando `flutter emulators --launch medium_phone` funciona, mas não mostra erro se o emulador falhar.

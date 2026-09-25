@@ -116,8 +116,9 @@ flutter test
 **No Android:** ligue o emulador, espere a tela inicial do Android aparecer e só então rode o app.
 
 ```powershell
-%LOCALAPPDATA%\Android\Sdk\emulator\emulator.exe -avd medium_phone
+& "$env:LOCALAPPDATA\Android\Sdk\emulator\emulator.exe" -avd medium_phone
 # em outro terminal, depois que o Android abrir:
+cd C:\projetos\app-rede-apoio\app
 flutter devices
 flutter run
 ```

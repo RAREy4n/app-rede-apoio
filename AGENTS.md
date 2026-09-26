@@ -41,7 +41,8 @@ Leia também:
 - Flutter: organize código em `app/lib/features/`, `app/lib/core/` e `app/lib/app/`. Em cada feature: `data/` (acesso a dados), `domain/` (modelos) e `presentation/` (telas).
 - Telas só usam o que está exportado em `app/lib/api.dart`; não chamam o Supabase diretamente.
 - Banco: toda mudança é uma migration nova em `backend/supabase/migrations/`; atualize `docs/API.md` e rode `backend/supabase/tests/api_test.sql`.
-- Landing page: React com JavaScript, em `landing-page/`.
+- Linguagens: Dart no app, TypeScript (`.ts`/`.tsx`) na web e SQL só nas migrations. O app roda em Android e web (Chrome, para testes); não adicione outras plataformas Flutter sem necessidade.
+- Landing page e página `/acompanhar`: React com TypeScript (TSX), em `landing-page/`.
 - Todo pacote novo exige justificativa de privacidade, manutenção e licença.
 - Não versionar APKs, caches, arquivos locais do Android, chaves, tokens ou arquivos `.env`.
 - Antes de concluir uma mudança Flutter, rode `flutter analyze` e `flutter test` dentro de `app/`.

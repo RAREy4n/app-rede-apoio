@@ -6,3 +6,8 @@
 *.gif binary
 *.webp binary
 *.apk binary
+
+# Código de plataforma gerado pelo Flutter: fora das estatísticas de linguagem do GitHub.
+app/android/** linguist-vendored
+app/ios/** linguist-vendored
+app/web/** linguist-vendored

@@ -234,16 +234,26 @@ Parâmetro: `viewer_token`. Resposta:
 | `expirado` | "O tempo de compartilhamento terminou." (sem posição) |
 | `inexistente` | "Link inválido ou expirado." |
 
-Exemplo para a página (JavaScript, consultando a cada 15 s):
+Exemplo para a página (TypeScript, consultando a cada 15 s):
 
-```js
+```ts
+type EstadoCompartilhamento = {
+  status: 'aguardando' | 'ativo' | 'encerrado' | 'expirado' | 'inexistente';
+  label: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  accuracy_m: number | null;
+  updated_at: string | null;
+  expires_at: string | null;
+};
+
 const token = new URLSearchParams(location.hash.slice(1)).get('t');
 const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/location_share_view`, {
   method: 'POST',
-  headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+  headers: { apikey: SUPABASE_PUBLISHABLE_KEY, 'Content-Type': 'application/json' },
   body: JSON.stringify({ viewer_token: token }),
 });
-const [estado] = await r.json();
+const [estado]: EstadoCompartilhamento[] = await r.json();
 ```
 
 A página deve: não salvar o token nem a posição; mostrar um aviso de que o link pode ser encaminhado; indicar os canais 190 e 180.

@@ -1,6 +1,6 @@
 # Landing page
 
-Esta pasta receberá a landing page em **React com JavaScript**. Ela será a porta pública do projeto e direcionará para o download do aplicativo quando existir uma versão distribuível.
+Esta pasta receberá a landing page em **React com TypeScript (TSX)**. Ela será a porta pública do projeto e direcionará para o download do aplicativo quando existir uma versão distribuível.
 
 ## Objetivo
 
@@ -24,4 +24,4 @@ Não coletar relatos, localização, documentos, provas ou dados sensíveis na l
 
 ## Próximo passo
 
-Inicializar o projeto React, definir identidade visual acessível e construir uma página responsiva antes de qualquer formulário de contato.
+Inicializar o projeto React com TypeScript, definir identidade visual acessível e construir uma página responsiva antes de qualquer formulário de contato.

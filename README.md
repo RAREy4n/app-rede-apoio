@@ -143,7 +143,7 @@ O backend é o Supabase, sem servidor próprio. Banco, API e testes ficam em `ba
 - **Mobile:** Flutter e Dart. Pacotes principais: `supabase_flutter`, `flutter_map` + `latlong2` (mapa), `geolocator`, `url_launcher`, `flutter_secure_storage`, `shared_preferences`.
 - **Backend:** Supabase (PostgreSQL + PostGIS, RPCs em SQL).
 - **Mapas:** OpenStreetMap (atribuição obrigatória).
-- **Landing page:** React e JavaScript (a iniciar).
+- **Landing page:** React e TypeScript (a iniciar).
 
 ## Segurança e limites do produto
 

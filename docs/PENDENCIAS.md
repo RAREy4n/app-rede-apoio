@@ -7,7 +7,8 @@ Legenda: `[ ]` pendente, `[x]` concluído.
 - [x] Backend só Supabase, organizado em migrations (`backend/supabase/`).
 - [x] Contrato da API para o front (`docs/API.md`) e camada de dados (`app/lib/api.dart`).
 - [x] Testes do contrato (`backend/supabase/tests/api_test.sql`).
-- [ ] Aplicar as migrations novas no Supabase de produção.
+- [x] Aplicar as migrations novas no Supabase de produção (histórico da CLI sincronizado em 26/09/2026; `db push --dry-run` sem pendências).
+- [ ] Checar se o banco de produção tem mudanças feitas pelo painel fora das migrations (`supabase db diff --linked`, precisa de Docker/Podman).
 - [x] Rodar `flutter pub get`, `flutter analyze` e `flutter test` com a nova camada de dados (31 testes passando).
 - [x] Tela de direitos e orientações (`GuidancePage` + `GuideDetailPage`), com aviso de revisão e cache offline.
 - [ ] Confirmar no Chrome a correção da tela branca (botões em `Row` com largura infinita do tema).
@@ -87,7 +88,7 @@ Legenda: `[ ]` pendente, `[x]` concluído.
 - [ ] Conferir no mapa as 2 coordenadas ainda marcadas como `aproximada`.
 - [x] Resolver divergência de endereço do Hospital do Trabalhador (confirmado pelo IPPUC).
 - [x] Importar CRAS (39), CREAS (10), UPAs (9), delegacias (14), Defensoria (9) e CRAM CIC do IPPUC (`20260926120000_rede_curitiba_ippuc.sql`).
-- [ ] Aplicar a migration `20260926120000_rede_curitiba_ippuc.sql` no Supabase de produção.
+- [x] Aplicar a migration `20260926120000_rede_curitiba_ippuc.sql` no Supabase de produção (90 instituições retornadas pela API).
 - [ ] Confirmar os telefones da Delegacia da Mulher (IPPUC e Prefeitura divergem).
 - [ ] Criar coleta programada (mensal) que compara fontes oficiais e abre pendências.
 - [ ] Criar painel simples para aprovar/rejeitar pendências da fila.

@@ -20,7 +20,7 @@ Legenda: `[ ]` pendente, `[x]` concluído.
 
 - [x] Definir escopo inicial.
 - [x] Definir Flutter/Dart para o app.
-- [x] Definir React/JavaScript para a landing page.
+- [x] Definir React com TypeScript (TSX) para a landing page (trocado de JavaScript em 26/09/2026).
 - [x] Criar estrutura inicial do código Flutter.
 - [x] Criar tema e telas iniciais.
 - [x] Instalar Flutter SDK e Dart no ambiente.
@@ -105,7 +105,7 @@ Legenda: `[ ]` pendente, `[x]` concluído.
 
 ## Landing page
 
-- [ ] Inicializar React com JavaScript.
+- [ ] Inicializar React com TypeScript.
 - [ ] Criar apresentação do projeto.
 - [ ] Adicionar links oficiais 190 e 180.
 - [ ] Criar seção de privacidade.

@@ -10,7 +10,7 @@ Priorize segurança, privacidade, acessibilidade, clareza e viabilidade acadêmi
 
 O produto possui duas interfaces principais:
 
-1. Landing page pública feita em React com JavaScript.
+1. Landing page pública feita em React com TypeScript.
 2. Aplicativo mobile multiplataforma feito em Flutter com Dart.
 
 O backend é o Supabase (PostgreSQL + PostGIS, RPCs em SQL), responsável pelos dados da rede de apoio, canais de emergência, guias de direitos e compartilhamento temporário de localização. A pessoa de confiança fica só no aparelho.
@@ -82,7 +82,7 @@ Personalização interna é permitida. Ícones alternativos no Android e iOS dep
 ## Stack
 
 - Mobile: Flutter/Dart.
-- Landing page: React/JavaScript.
+- Landing page: React/TypeScript (TSX).
 - Mapas: provedor de mapas com licença adequada.
 - Backend: API segura e banco relacional.
 - Autenticação: mínima e opcional onde possível.

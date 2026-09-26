@@ -4,6 +4,7 @@
 -- Roda tudo dentro de uma transação e desfaz no final (ROLLBACK):
 -- é seguro executar no SQL Editor do Supabase, inclusive em produção.
 -- Se algum teste falhar, a execução para com "FALHOU: ...".
+-- Se todos passarem, o resultado final é "ok: todos os testes passaram".
 --
 -- Local: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/supabase/tests/api_test.sql
 -- ============================================================================
@@ -151,5 +152,8 @@ EXCEPTION WHEN raise_exception THEN
   IF SQLERRM <> 'limite_de_sessoes' THEN RAISE; END IF;
   RAISE NOTICE 'ok: limite de sessões';
 END $$;
+
+-- O SQL Editor do painel não mostra os avisos (NOTICE); esta linha é o sinal de sucesso.
+SELECT 'ok: todos os testes passaram' AS resultado;
 
 ROLLBACK;

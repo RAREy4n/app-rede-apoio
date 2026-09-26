@@ -1,11 +1,12 @@
 {
-    "name": "rede_apoio",
-    "short_name": "rede_apoio",
+    "name": "Rede de Apoio",
+    "short_name": "Rede de Apoio",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Orientação e acesso à rede de proteção, a contatos de confiança e a canais oficiais.",
+    "lang": "pt-BR",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

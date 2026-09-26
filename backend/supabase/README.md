@@ -11,37 +11,41 @@ Piloto atual: **Curitiba/PR**. Contrato da API para o front: [docs/API.md](../..
 
 ## Aplicar as migrations
 
+### Acesso
+
+Peça a quem administra a organização no Supabase um convite com papel **Developer** (Settings → Team → Invite) e a senha do banco por canal privado. Não use "Reset database password": troca a senha de todo mundo.
+
 ### Opção A — Supabase CLI (recomendado)
+
+Rode **sempre de dentro de `backend/`**. A CLI procura a pasta `supabase/` subindo a partir do diretório atual; fora de `backend/`, ela cria uma pasta `supabase/` nova, que não está no `.gitignore`.
+
+Não precisa instalar a CLI: com Node, `npx supabase` baixa e roda. Na primeira vez:
 
 ```bash
 cd backend
-supabase login
-supabase link --project-ref xozcsujnjzoinqhifgfm
+npx supabase login
+npx supabase link --project-ref xozcsujnjzoinqhifgfm   # pede a senha do banco
 ```
 
-**Só na primeira vez, no banco de produção atual:** os antigos `01_schema.sql` a `04_seed_curitiba.sql` já foram aplicados à mão. Marque as migrations equivalentes como aplicadas:
+A cada migration nova:
 
 ```bash
-supabase migration repair --status applied 20260920120000 20260920120100 20260924120000 20260924120100
+npx supabase migration list          # compara Local x Remote
+npx supabase db push --dry-run       # mostra o que seria aplicado, sem aplicar
+npx supabase db push                 # aplica só as migrations novas
 ```
 
-Depois, sempre:
+O histórico de produção foi sincronizado em 26/09/2026: as 7 migrations até `20260926120000` estão registradas como aplicadas.
+
+Para um banco local de desenvolvimento: `npx supabase start` e `npx supabase db reset` (precisa do Docker).
+
+### Opção B — SQL Editor do painel (evite)
+
+Colar uma migration no SQL Editor aplica o SQL, mas **não registra** no histórico da CLI. Se usar este caminho, registre logo em seguida, senão o próximo `db push` tenta aplicar a migration de novo:
 
 ```bash
-supabase db push      # aplica só as migrations novas
+npx supabase migration repair --status applied <versão>
 ```
-
-Para um banco local de desenvolvimento: `supabase start` e `supabase db reset` (precisa do Docker).
-
-### Opção B — SQL Editor do painel
-
-Cole e rode, **em ordem**, os arquivos de `migrations/` que ainda não foram aplicados. No banco de produção atual faltam só:
-
-1. `20260925120000_canais_categorias_conteudo.sql`
-2. `20260925120100_compartilhamento_localizacao.sql`
-3. `20260926120000_rede_curitiba_ippuc.sql` (amplia a rede para ~90 instituições)
-
-Se as duas primeiras já foram aplicadas, rode só a terceira.
 
 ### Limpeza automática da localização
 
@@ -49,9 +53,15 @@ A migration de localização tenta agendar a limpeza com **pg_cron** a cada 15 m
 
 ## Testar
 
-Cole `tests/api_test.sql` no SQL Editor e rode. Ele simula o app (papel `anon`), testa todo o contrato e desfaz tudo no final (`ROLLBACK`), então é seguro em produção. O resultado esperado são 4 avisos `ok: ...`. Se algo quebrar, aparece `FALHOU: ...`.
+Cole `tests/api_test.sql` no SQL Editor e rode. Ele simula o app (papel `anon`), testa todo o contrato e desfaz tudo no final (`ROLLBACK`), então é seguro em produção. Se tudo passar, o resultado é `ok: todos os testes passaram`. Se algo quebrar, aparece um erro `FALHOU: ...`.
 
-Com o CLI ou psql:
+Pela CLI, de dentro de `backend/` (não pede senha):
+
+```bash
+npx supabase db query --linked -f supabase/tests/api_test.sql
+```
+
+Com psql, aparecem também os 4 avisos `ok: ...` de cada grupo de testes (o painel e a CLI não mostram avisos):
 
 ```bash
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/api_test.sql
